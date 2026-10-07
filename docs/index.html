@@ -37,8 +37,8 @@
     <div class="site-nav-links" id="navLinks">
       <a href="#tldr">Overview</a>
       <a href="#results">Results</a>
-      <a href="#build">Use it</a>
       <a href="#method">How it works</a>
+      <a href="#build">Use it</a>
       <a href="#details">Details</a>
       <a href="#bibtex">BibTeX</a>
       <a href="https://github.com/GabrieleSerussi/vedje" class="site-nav-cta" target="_blank" rel="noopener">Code</a>
@@ -204,55 +204,8 @@
     </div>
 
     <!-- 02 -->
-    <div class="text-block reveal" id="build">
-      <span class="eyebrow eyebrow-outline section-eyebrow">02 · Use it</span>
-      <h2>Index your own videos and rerank them with the <span class="accent">released code</span>.</h2>
-      <p class="section-ref">Code by the authors. The recipe follows Sections 3 and 4.1 and Appendices A.1 to A.3 of the paper.</p>
-      <p>You need videos with captions and a GPU for training. One command trains VEDJE on any of the four datasets, and two more index your own videos and search them with text. The Colab notebook indexes a clip of your choice and times a query against a typical reranker, on a free CPU runtime.</p>
-      <div class="paper-links build-actions">
-        <a class="btn-pill is-primary" href="https://github.com/GabrieleSerussi/vedje" target="_blank" rel="noopener">
-          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          GitHub: vedje
-        </a>
-        <a class="js-colab btn-pill" href="https://colab.research.google.com/github/GabrieleSerussi/vedje/blob/main/colab/vedje_tour.ipynb" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10 8.5v7l5.5-3.5z"/></svg>
-          Open the Colab tour
-        </a>
-      </div>
-      <ol class="recipe" id="recipe">
-        <li><strong>Index.</strong> Run the frozen visual encoder once per video and keep its frame-indexed features.</li>
-        <li><strong>Prepare the first stage.</strong> Embed the training videos and captions with the first-stage retriever, and mine hard negatives from its rankings.</li>
-        <li><strong>Train.</strong> Train the compressor, the joint reranker and the training-only heads together.</li>
-        <li><strong>Rerank.</strong> Write each video's cache once. For each query, rerank the first stage's candidates from their caches.</li>
-      </ol>
-      <div class="deep tool-card reveal" id="code">
-        <div class="tool-card-body">
-          <span class="eyebrow eyebrow-badge">Open source</span>
-          <h4>Rerank your own collection.</h4>
-          <p>Clone the repository and train VEDJE with one command. Two more commands, or a few lines of Python, index your videos once and search them with text.</p>
-          <a href="https://github.com/GabrieleSerussi/vedje" class="tool-card-cta btn-pill" target="_blank" rel="noopener">
-            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-            Open on GitHub
-          </a>
-        </div>
-        <div class="tool-card-media">
-<pre class="code-block" id="codeSnippet"><span class="c"># 1. clone and install (Python 3.10 or newer)</span>
-git clone https://github.com/GabrieleSerussi/vedje.git &amp;&amp; cd vedje
-pip install -e .
-
-<span class="c"># 2. train on a GPU</span>
-vedje train configs/vedje_vp_msrvtt.yaml
-
-<span class="c"># 3. index your videos once, then search them with text</span>
-vedje index output/vedje_vp_msrvtt/checkpoint_03.pth my_videos/ --out my_index.pt
-vedje search my_index.pt "a person walks across a field"</pre>
-        </div>
-      </div>
-    </div>
-
-    <!-- 03 -->
     <div class="text-block reveal" id="method">
-      <span class="eyebrow eyebrow-outline section-eyebrow">03 · How it works</span>
+      <span class="eyebrow eyebrow-outline section-eyebrow">02 · How it works</span>
       <h2>VEDJE moves video encoding offline and keeps a <span class="accent">separate token group</span> for each sampled frame.</h2>
       <p class="section-ref">Section 3 of the paper, with Figure 2 and Appendices A.1 to A.3.</p>
       <p>Finding the right video often means telling apart similar scenes in which different events occur. Joint matching of the query and the video improves retrieval, but processing rich video features for every query is costly. VEDJE encodes each video once, compresses each sampled frame into a few tokens and lets a small joint encoder read them at query time.</p>
@@ -311,6 +264,53 @@ c-1 5-5 9-11 9h-2L532 67 19 159h-2c-5 0-9-4-11-9l-5-22c-1-6 2-12 8-13z"/></svg><
             </div>
             <p class="eq-note"><span class="math" data-tex="c(q,v)"><!--k--><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo stretchy="false">(</mo><mi>q</mi><mo separator="true">,</mo><mi>v</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">c(q,v)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">c</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mclose">)</span></span></span></span><!--/k--></span> is the pooled output of the joint encoder over the query tokens and the cache <span class="math" data-tex="Z(v)"><!--k--><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Z</mi><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">Z(v)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mclose">)</span></span></span></span><!--/k--></span>, and <span class="math" data-tex="\rho(q,v)"><!--k--><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo stretchy="false">(</mo><mi>q</mi><mo separator="true">,</mo><mi>v</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\rho(q,v)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">ρ</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mclose">)</span></span></span></span><!--/k--></span> is the first-stage score. The candidates are sorted by <span class="math" data-tex="s_\theta"><!--k--><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>θ</mi></msub></mrow><annotation encoding="application/x-tex">s_\theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span><!--/k--></span>. Each query reads only its candidates' caches, so this traffic stays fixed as the collection grows.</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 -->
+    <div class="text-block reveal" id="build">
+      <span class="eyebrow eyebrow-outline section-eyebrow">03 · Use it</span>
+      <h2>Index your own videos and rerank them with the <span class="accent">released code</span>.</h2>
+      <p class="section-ref">Code by the authors. The recipe follows Sections 3 and 4.1 and Appendices A.1 to A.3 of the paper.</p>
+      <p>You need videos with captions and a GPU for training. One command trains VEDJE on any of the four datasets, and two more index your own videos and search them with text. The Colab notebook indexes a clip of your choice and times a query against a typical reranker, on a free CPU runtime.</p>
+      <div class="paper-links build-actions">
+        <a class="btn-pill is-primary" href="https://github.com/GabrieleSerussi/vedje" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub: vedje
+        </a>
+        <a class="js-colab btn-pill" href="https://colab.research.google.com/github/GabrieleSerussi/vedje/blob/main/colab/vedje_tour.ipynb" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10 8.5v7l5.5-3.5z"/></svg>
+          Open the Colab tour
+        </a>
+      </div>
+      <ol class="recipe" id="recipe">
+        <li><strong>Index.</strong> Run the frozen visual encoder once per video and keep its frame-indexed features.</li>
+        <li><strong>Prepare the first stage.</strong> Embed the training videos and captions with the first-stage retriever, and mine hard negatives from its rankings.</li>
+        <li><strong>Train.</strong> Train the compressor, the joint reranker and the training-only heads together.</li>
+        <li><strong>Rerank.</strong> Write each video's cache once. For each query, rerank the first stage's candidates from their caches.</li>
+      </ol>
+      <div class="deep tool-card reveal" id="code">
+        <div class="tool-card-body">
+          <span class="eyebrow eyebrow-badge">Open source</span>
+          <h4>Rerank your own collection.</h4>
+          <p>Clone the repository and train VEDJE with one command. Two more commands, or a few lines of Python, index your videos once and search them with text.</p>
+          <a href="https://github.com/GabrieleSerussi/vedje" class="tool-card-cta btn-pill" target="_blank" rel="noopener">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            Open on GitHub
+          </a>
+        </div>
+        <div class="tool-card-media">
+<pre class="code-block" id="codeSnippet"><span class="c"># 1. clone and install (Python 3.10 or newer)</span>
+git clone https://github.com/GabrieleSerussi/vedje.git &amp;&amp; cd vedje
+pip install -e .
+
+<span class="c"># 2. train on a GPU</span>
+vedje train configs/vedje_vp_msrvtt.yaml
+
+<span class="c"># 3. index your videos once, then search them with text</span>
+vedje index output/vedje_vp_msrvtt/checkpoint_03.pth my_videos/ --out my_index.pt
+vedje search my_index.pt "a person walks across a field"</pre>
         </div>
       </div>
     </div>
@@ -386,8 +386,8 @@ c-1 5-5 9-11 9h-2L532 67 19 159h-2c-5 0-9-4-11-9l-5-22c-1-6 2-12 8-13z"/></svg><
     <button class="quick-links-share" id="shareBtn" type="button"><span class="ql-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.33 15.72c-.68 0-1.28.27-1.74.7l-6.34-3.75c.04-.21.08-.42.08-.63 0-.22-.04-.43-.08-.63l6.27-3.72c.48.46 1.11.74 1.81.74 1.48 0 2.67-1.21 2.67-2.71S18.81 3 17.33 3s-2.67 1.21-2.67 2.71c0 .22.04.43.08.63L8.48 10.06c-.48-.46-1.11-.74-1.81-.74C5.19 9.33 4 10.54 4 12.04s1.19 2.71 2.67 2.71c.7 0 1.33-.28 1.81-.74l6.33 3.76c-.04.19-.07.39-.07.59 0 1.45 1.16 2.64 2.6 2.64s2.6-1.18 2.6-2.64-1.16-2.64-2.6-2.64z"/></svg></span><span class="lbl-long">Share this page</span><span class="lbl-short">Share</span></button>
     <ul class="toc" aria-label="On this page">
       <li><a href="#results"><small>01</small>Results</a></li>
-      <li><a href="#build"><small>02</small>Use it</a></li>
-      <li><a href="#method"><small>03</small>How it works</a></li>
+      <li><a href="#method"><small>02</small>How it works</a></li>
+      <li><a href="#build"><small>03</small>Use it</a></li>
       <li><a href="#details"><small>04</small>Details</a></li>
     </ul>
   </aside>

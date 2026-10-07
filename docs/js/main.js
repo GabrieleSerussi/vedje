@@ -149,7 +149,7 @@
       svg.appendChild(mk('text', { x: 12, y: (m.t + H - m.b) / 2, 'class': 'axis-title', 'text-anchor': 'middle', transform: 'rotate(-90 12 ' + ((m.t + H - m.b) / 2) + ')' }, 'R@1 (%)'));
       function point(p, cls, r, tipText) {
         var g = mk('g', { 'class': 'pt-g', tabindex: '0', 'data-tip': tipText });
-        if (cls === 'is-ours') g.appendChild(mk('circle', { cx: X(p[0]), cy: Y(p[1]), r: r + 7, 'class': 'ring' }));
+        if (cls === 'is-ours') g.appendChild(mk('circle', { cx: X(p[0]), cy: Y(p[1]), r: r + 10, 'class': 'ring' }));
         g.appendChild(mk('circle', { cx: X(p[0]), cy: Y(p[1]), r: r, 'class': 'pt ' + cls }));
         svg.appendChild(g);
       }
@@ -180,7 +180,7 @@
         } else label(x + L.dx, y + L.dy, p.name, '', L.anchor);
       });
       point([VEDJE_FT.params, VEDJE_FT.r1], 'is-ours', narrow ? 8 : 7.5, 'VEDJE · about 157M online parameters · R@1 59.8');
-      label(X(VEDJE_FT.params) + 16, Y(VEDJE_FT.r1) - 10, 'VEDJE', 'is-ours');
+      label(X(VEDJE_FT.params) + 24, Y(VEDJE_FT.r1) - 10, 'VEDJE', 'is-ours');
       host.innerHTML = ''; host.appendChild(svg); bindTips(host);
     }
     onResize(host, draw);
