@@ -1,4 +1,12 @@
 # VEDJE-VCLIP on msrvtt. Replace ./data_root/... with your local paths.
+# This config reads precomputed VideoCLIP-XL inputs, so vedje train skips indexing and the first-stage embeddings:
+#   features:  one file per video in precomputed_features_dir, {"local_patches": (16 * 256, 1024), "v_global": (768,)},
+#              from 16 uniformly sampled frames;
+#   training:  lvt_embeds_path, {"video_embeds": (N_videos, 768), "text_embeds": (N_captions, 768), "video_ids",
+#              "video_id_to_idx", "caption_to_video_idx", "vid_to_caption_indices"}, L2-normalised, in the order of
+#              the training annotations (the format of scripts/stage1_train_embeddings.py);
+#   test:      lvt_test_features_path, {"vid_feats": (N_videos, 768), "text_feats": (N_captions, 768)}, L2-normalised,
+#              in the order of the test annotations.
 
 # Backbone (frozen) and frame-local cache: T frames x M queries = 64 tokens
 vision_encoder: "vcxl"

@@ -8,7 +8,7 @@ import torch
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ["extract_features.py", "stage1_train_embeddings.py", "mine_hard_negatives.py",
-           "stage1_test_features.py", "train.py", "evaluate.py", "run_all.py"]
+           "stage1_test_features.py", "train.py", "evaluate.py"]
 
 
 def test_every_script_help_exits_0_on_cpu():
@@ -22,8 +22,7 @@ def test_every_script_help_exits_0_on_cpu():
         assert out.decode().startswith("usage:"), name
 
 
-def test_cpu_check_and_paper_results_exist():
-    assert (ROOT / "reproduce" / "cpu_check.py").is_file()
+def test_paper_results_exist():
     from vedje.paper import load_results
     results = load_results()
     for block in ("table_1b", "table_3", "table_4", "table_5", "table_6", "table_9", "table_12",
@@ -41,14 +40,16 @@ def test_hard_negatives_are_the_most_similar_wrong_videos():
     assert negatives == {"0": ["v1", "v2"], "1": ["v3", "v0"]}
 
 
-def test_run_all_runs_the_steps_in_order():
-    spec = importlib.util.spec_from_file_location("run_all", ROOT / "scripts" / "run_all.py")
-    run_all = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(run_all)
-    _, steps = run_all.plan(str(ROOT / "configs" / "vedje_vp_msrvtt.yaml"))
+def test_vedje_train_runs_the_steps_in_order():
+    from vedje.cli import plan
+    _, steps = plan(str(ROOT / "configs" / "vedje_vp_msrvtt.yaml"))
     assert [s[1][0] for s in steps] == ["extract_features.py", "stage1_train_embeddings.py", "mine_hard_negatives.py",
                                         "stage1_test_features.py", "train.py", "evaluate.py"]
     assert steps[-1][1][-1] == steps[-2][2] and steps[-1][1][-1].endswith("checkpoint_03.pth")  # evaluates the last checkpoint
-    _, steps = run_all.plan(str(ROOT / "configs" / "vedje_vclip_msrvtt.yaml"))
+    _, steps = plan(str(ROOT / "configs" / "vedje_vclip_msrvtt.yaml"))
     assert [s[1][0] for s in steps] == ["mine_hard_negatives.py", "train.py", "evaluate.py"]  # features are precomputed
 
+
+def test_vedje_command_help():
+    out = subprocess.run([sys.executable, "-m", "vedje", "--help"], capture_output=True, text=True, cwd=ROOT)
+    assert out.returncode == 0 and "train" in out.stdout and "index" in out.stdout and "search" in out.stdout

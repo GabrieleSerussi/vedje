@@ -29,7 +29,7 @@
 
 </div>
 
-VEDJE reranks first-stage video candidates with a 33M-parameter joint encoder that reads a compact cache written once per video. The cache keeps a few learned tokens per sampled frame, and feature-change supervision during training improves retrieval from it without adding query-time work. This repository holds the VEDJE package, one script per method step, five of the paper's configurations, a CPU check of its numbers and the tests.
+VEDJE reranks first-stage video candidates with a 33M-parameter joint encoder that reads a compact cache written once per video. The cache keeps a few learned tokens per sampled frame, and feature-change supervision during training improves retrieval from it without adding query-time work. This repository holds the VEDJE package and its `vedje` command, one script per method step, five of the paper's configurations and the tests.
 
 ## Quick start
 
@@ -41,15 +41,49 @@ VEDJE reranks first-stage video candidates with a 33M-parameter joint encoder th
    pip install -e .
    ```
 
-2. **Add your data.** Put the MSR-VTT videos in `./data_root/msrvtt/videos/` and the two annotation files in `./data_root/msrvtt/`, named as in [the config](configs/vedje_vp_msrvtt.yaml). [REPRODUCING.md](REPRODUCING.md) shows the annotation format.
-
-3. **Run VEDJE** on a GPU:
+2. **Train** on a GPU. Put your videos and annotation files under `./data_root/msrvtt/`, in [the format below](#your-data), then run:
 
    ```bash
-   python scripts/run_all.py --config configs/vedje_vp_msrvtt.yaml
+   vedje train configs/vedje_vp_msrvtt.yaml
    ```
 
-   It indexes the videos, prepares the first stage, trains VEDJE, reranks the test candidates and prints R@1, R@5 and R@10. Running it again skips the steps already done. For another dataset, pick its config in [`configs/`](configs).
+   It indexes the videos, prepares the first stage, trains VEDJE and reports R@1, R@5 and R@10 on the test set. Running it again skips the steps already done.
+
+3. **Search your own videos** with the trained model:
+
+   ```bash
+   vedje index output/vedje_vp_msrvtt/checkpoint_03.pth my_videos/ --out my_index.pt
+   vedje search my_index.pt "a person walks across a field"
+   ```
+
+   Indexing runs the frozen video encoder once per video. Each search reads only the caches of the first stage's candidates, with no visual encoding.
+
+## From Python
+
+```python
+from vedje.inference import VEDJE
+
+vedje = VEDJE.from_checkpoint("output/vedje_vp_msrvtt/checkpoint_03.pth")
+index = vedje.index("my_videos/")            # once per collection
+index.save("my_index.pt")
+for hit in vedje.search("a person walks across a field", index, top=5):
+    print(hit.rank, hit.video, round(hit.score, 3))
+```
+
+`Index.load("my_index.pt")` reopens a saved index, and each hit also gives the video's first-stage rank and score. Indexing new videos needs a checkpoint trained with a VideoPrism config.
+
+## Your data
+
+Each config reads its data from `./data_root/<dataset>/`; edit the paths in the config to use others. Annotation files are JSON lists, and video paths are relative to the config's video folder.
+
+| Dataset | Config | Training entry | Test entry |
+| --- | --- | --- | --- |
+| MSR-VTT | `vedje_vp_msrvtt.yaml` | `{"video_id": "video0", "video": "video0.mp4", "caption": ["...", "..."]}` | `{"video": "video7020.mp4", "caption": "..."}` |
+| MSVD | `vedje_vp_msvd.yaml` | `{"video_id": "<name>", "video": "<name>.avi", "caption": ["...", "..."]}` | `{"video": "<name>.avi", "caption": ["...", "..."]}` |
+| DiDeMo | `vedje_vp_didemo.yaml` | `{"video": "train/<name>.mp4", "caption": "<descriptions, concatenated>"}` | the same form, one entry per caption |
+| ActivityNet | `vedje_vp_activitynet.yaml` | `{"video_id": "v_XXXX", "video": "v1-3/train_val/v_XXXX.mp4", "caption": ["<paragraph>"]}` | `{"video_id": "v_XXXX", "video": "v1-3/train_val/v_XXXX.mp4", "caption": "<paragraph>"}` |
+
+The first stage reads the captions as written, and the joint encoder reads them lower-cased without punctuation. [`configs/vedje_vclip_msrvtt.yaml`](configs/vedje_vclip_msrvtt.yaml) reads precomputed VideoCLIP-XL features and first-stage embeddings instead of videos, and its comments list their formats. Each step of `vedje train` is also a script in [`scripts/`](scripts) with `--help`, and `scripts/train.py` runs data-parallel under `torchrun`.
 
 ## How it works
 
@@ -66,6 +100,8 @@ Offline, a frozen backbone encodes each video once, and a shared compressor writ
 | 4. Train | Trains the frame-indexed compressor, the joint reranker, the prior embedding, the score head and the training-only heads. | [`scripts/train.py`](scripts/train.py) |
 | 5. Rerank and evaluate | Retrieves candidates with the first stage, reranks them from their caches and reports R@1, R@5 and R@10 in both directions. | [`scripts/evaluate.py`](scripts/evaluate.py) |
 
+`vedje train` runs these steps in order.
+
 ## Results
 
 - VEDJE reaches 59.8 MSR-VTT text-to-video R@1 with about 157M online parameters, using a fine-tuned VideoCLIP-XL first stage. The LamRA reproduction reaches 59.7 with a 7.6B base decoder, about 49 times that count (Figure 1, Table 22 and Appendix B).
@@ -74,17 +110,13 @@ Offline, a frozen backbone encodes each video once, and a shared compressor writ
 - The default cache stores 48 KiB per video, 128.5 times less than the frame-and-patch features of the same backbone (Section 4.3 and Table 9).
 - In the VideoPrism configuration on MSR-VTT, the 12 KiB cache keeps text-to-video R@1 within 0.2 points of the 48 KiB cache (Table 3).
 
-## Reproducing the paper
-
-[REPRODUCING.md](REPRODUCING.md) maps each table and figure of the paper that this code covers to its config and commands. It also lists the inputs to provide, namely videos, annotation files and, for the VideoCLIP-XL setting, precomputed features, and what the release does not contain.
-
 ## Repository layout
 
 ```
-vedje/        the package: cache, delta, model, features, video, lvt, retrieval, data, config, paper
-scripts/      one script per method step, and run_all.py to run them in order
+vedje/        the package: cache, delta, model, features, video, lvt, retrieval, data, config, paper,
+              inference (index and search) and cli (the vedje command)
+scripts/      one script per method step, which vedje train runs in order
 configs/      five configurations of the paper
-reproduce/    cpu_check.py, numbers of the paper recomputed on a CPU
 artifacts/    paper_results.json, the numbers of the paper that the README and the notebook chart
 tests/        the test suite (pytest, CPU only)
 docs/         the project page

@@ -38,6 +38,9 @@ dependencies = [
 comet = ["comet_ml"]
 dev = ["pytest"]
 
+[project.scripts]
+vedje = "vedje.cli:main"
+
 [project.urls]
 Homepage = "https://gabrieleserussi.github.io/vedje/"
 Repository = "https://github.com/GabrieleSerussi/vedje"

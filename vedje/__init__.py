@@ -16,6 +16,8 @@ Modules:
     vedje.data       MSR-VTT, MSVD, DiDeMo and ActivityNet loaders
     vedje.config     configuration loading
     vedje.paper      the paper's reported numbers (artifacts/paper_results.json)
+    vedje.inference  index your videos and search them with a trained checkpoint (VEDJE, Index)
+    vedje.cli        the vedje command: train, index, search
 """
 
 __version__ = "0.1.0"
