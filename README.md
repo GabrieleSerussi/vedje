@@ -2,10 +2,10 @@
 
 <h1>VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval</h1>
 
-<p><b>VEDJE adds joint text-video matching to two-stage video search without encoding videos at query time.</b></p>
+<p><b>VEDJE moves video encoding offline and keeps joint matching online.</b></p>
 
 <p>
-<a href="https://github.com/shahafwa">Shahaf Wagner</a><sup>1*</sup>&nbsp;&nbsp;
+<a href="https://scholar.google.com/citations?user=yp4EiKQAAAAJ&amp;hl=en">Shahaf Wagner</a><sup>1*</sup>&nbsp;&nbsp;
 <a href="https://scholar.google.com/citations?user=GJ19YUEAAAAJ&amp;hl=en">Gabriele Serussi</a><sup>1,3*</sup>&nbsp;&nbsp;
 <a href="https://scholar.google.com/citations?user=OmIy5cgAAAAJ">Dan Ben Ami</a><sup>1</sup>&nbsp;&nbsp;
 <a href="https://scholar.google.com/citations?user=ut_ISVIAAAAJ">Tomer Galanti</a><sup>2</sup>&nbsp;&nbsp;
@@ -15,14 +15,13 @@
 <p>
 <sup>1</sup>INSIGHT Lab, Ben-Gurion University of the Negev&nbsp;&nbsp;&nbsp;
 <sup>2</sup>Texas A&amp;M University&nbsp;&nbsp;&nbsp;
-<sup>3</sup>Decart.ai<br>
+<sup>3</sup>Decart AI<br>
 <sup>*</sup>Equal contribution
 </p>
 
 <p>
 <a href="https://gabrieleserussi.github.io/vedje/"><img src="https://img.shields.io/badge/Project-Page-1f6feb" alt="Project page"></a>
 <a href="https://colab.research.google.com/github/GabrieleSerussi/vedje/blob/main/colab/vedje_tour.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"></a>
-<a href="https://github.com/GabrieleSerussi/vedje/actions/workflows/tests.yml"><img src="https://github.com/GabrieleSerussi/vedje/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
 
@@ -34,7 +33,7 @@ VEDJE reranks first-stage video candidates with a 33M-parameter joint encoder th
 
 ## Quick start
 
-1. **Install** (Python 3.10 or newer). This also installs stock `transformers>=5.13`, which provides the VideoPrism models:
+1. **Install** (Python 3.10 or newer):
 
    ```bash
    git clone https://github.com/GabrieleSerussi/vedje.git
@@ -42,27 +41,15 @@ VEDJE reranks first-stage video candidates with a 33M-parameter joint encoder th
    pip install -e .
    ```
 
-2. **Check the paper's numbers on a CPU**, in under a minute:
+2. **Add your data.** Put the MSR-VTT videos in `./data_root/msrvtt/videos/` and the two annotation files in `./data_root/msrvtt/`, named as in [the config](configs/vedje_vp_msrvtt.yaml). [REPRODUCING.md](REPRODUCING.md) shows the annotation format.
+
+3. **Run VEDJE** on a GPU:
 
    ```bash
-   python reproduce/cpu_check.py
+   python scripts/run_all.py --config configs/vedje_vp_msrvtt.yaml
    ```
 
-   It measures the cache sizes, the storage ratio and the cache traffic per query, and counts the parameters of the reranker. The first run downloads MiniLM.
-
-3. **Run VEDJE on your own videos**, one command per method step:
-
-   ```bash
-   CFG=configs/vedje_vp_msrvtt.yaml
-   python scripts/extract_features.py --config $CFG          # 1. index the videos once
-   python scripts/stage1_train_embeddings.py --config $CFG   # 2a. stage-1 embeddings of the training set
-   python scripts/mine_hard_negatives.py --config $CFG       # 2b. stage-1 hard negatives
-   python scripts/stage1_test_features.py --config $CFG      # 3. stage-1 embeddings of the test set
-   python scripts/train.py --config $CFG --output_dir output/vp_msrvtt                       # 4. train
-   python scripts/evaluate.py --config $CFG --checkpoint output/vp_msrvtt/checkpoint_03.pth  # 5. rerank and evaluate
-   ```
-
-   Every script takes its paths and settings from the config. The defaults come from the MSR-VTT config, with the videos and annotations under `./data_root/msrvtt/` and a GPU when one is available. The other datasets and the VideoCLIP-XL setting have their own files in [`configs/`](configs), and [REPRODUCING.md](REPRODUCING.md) describes the annotation formats.
+   It indexes the videos, prepares the first stage, trains VEDJE, reranks the test candidates and prints R@1, R@5 and R@10. Running it again skips the steps already done. For another dataset, pick its config in [`configs/`](configs).
 
 ## How it works
 
@@ -95,7 +82,7 @@ Offline, a frozen backbone encodes each video once, and a shared compressor writ
 
 ```
 vedje/        the package: cache, delta, model, features, video, lvt, retrieval, data, config, paper
-scripts/      one script per method step, from indexing to evaluation
+scripts/      one script per method step, and run_all.py to run them in order
 configs/      five configurations of the paper
 reproduce/    cpu_check.py, numbers of the paper recomputed on a CPU
 artifacts/    paper_results.json, the numbers of the paper that the README and the notebook chart

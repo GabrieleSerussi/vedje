@@ -59,7 +59,7 @@ Tables 3 and 4 report means over three training runs; `scripts/train.py --seed` 
 
 ## The pipeline
 
-With `CFG` set to a config, the steps run in this order (the numbers match the scripts' docstrings and the README):
+With `CFG` set to a config, `python scripts/run_all.py --config $CFG` runs these steps in order and skips the ones already done; `--dry_run` prints the commands. Each step is also a script of its own (the numbers match the scripts' docstrings):
 
 - **Step 1, index the videos.** `python scripts/extract_features.py --config $CFG` writes one `.pt` file per video of the train and test annotations into the config's features folder. Each file holds `local_patches`, 4096 patch tokens of dimension 768 (16 frames of 256 patches), and `v_global` (768). Files that already exist are skipped. `torchrun --nproc_per_node=N scripts/extract_features.py --config $CFG` shares the videos among N GPUs.
 - **Step 2a, stage-1 embeddings of the training set.** `python scripts/stage1_train_embeddings.py --config $CFG` writes the VideoPrism-LvT embeddings of the training videos and captions to the config's `lvt_embeds_path`. Training turns them into the stage-1 scores of the residual prior, and the video embeddings are the contrastive targets (Table 7).

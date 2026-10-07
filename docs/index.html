@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval | Project page</title>
-  <meta name="description" content="VEDJE adds joint text-video matching to two-stage video search without encoding videos at query time. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.">
+  <meta name="description" content="VEDJE moves video encoding offline and keeps joint matching online. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.">
   <meta name="keywords" content="video retrieval, text-video retrieval, reranking, joint encoder, cross-encoder, video cache, compression, MSR-VTT, VEDJE, Decart, Ben-Gurion University, INSIGHT Lab">
   <meta name="author" content="Shahaf Wagner, Gabriele Serussi, Dan Ben Ami, Tomer Galanti, Chaim Baskin">
   <meta property="og:site_name" content="VEDJE">
   <meta property="og:title" content="VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval">
-  <meta property="og:description" content="VEDJE adds joint text-video matching to two-stage video search without encoding videos at query time. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.">
+  <meta property="og:description" content="VEDJE moves video encoding offline and keeps joint matching online. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://gabrieleserussi.github.io/vedje/">
   <link rel="canonical" href="https://gabrieleserussi.github.io/vedje/">
@@ -54,7 +54,7 @@
         <span class="article-date js-venue">Preprint · 2026</span>
       </div>
       <h1 class="article-title">VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval</h1>
-      <p class="article-dek">VEDJE adds joint text-video matching to two-stage video search without encoding videos at query time. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.</p>
+      <p class="article-dek">VEDJE moves video encoding offline and keeps joint matching online. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.</p>
       <ul class="value-points" aria-label="What the paper delivers">
         <li><span class="vp-label">Result</span><span class="vp-text">On MSR-VTT, VEDJE improves R@1 over each matched first stage by 3.6 to 7.2 points, across both retrieval directions. With a fine-tuned VideoCLIP-XL first stage, it matches the LamRA reproduction in text-to-video R@1 with about 49 times fewer online parameters.</span></li>
         <li><span class="vp-label">Why</span><span class="vp-text">A video's cache is written before its queries are known, so it must keep evidence for different actions and moments. VEDJE keeps a separate token group for each sampled frame.</span></li>
@@ -62,16 +62,16 @@
       </ul>
 
       <div class="authors" aria-label="Authors">
-        <span class="author"><a href="https://github.com/shahafwa" target="_blank" rel="noopener">Shahaf Wagner</a><sup>1*</sup></span>
-        <span class="author is-decart"><a href="https://scholar.google.com/citations?user=GJ19YUEAAAAJ&amp;hl=en" target="_blank" rel="noopener">Gabriele Serussi</a><sup>1,3*</sup> <span class="decart-chip" title="Decart.ai"><img src="assets/img/decart-all-blue-logo.svg" alt="">Decart</span></span>
+        <span class="author"><a href="https://scholar.google.com/citations?user=yp4EiKQAAAAJ&amp;hl=en" target="_blank" rel="noopener">Shahaf Wagner</a><sup>1*</sup></span>
+        <span class="author is-decart"><a href="https://scholar.google.com/citations?user=GJ19YUEAAAAJ&amp;hl=en" target="_blank" rel="noopener">Gabriele Serussi</a><sup>1,3*</sup> <span class="decart-chip" title="Decart AI"><img src="assets/img/decart-all-blue-logo.svg" alt="">Decart</span></span>
         <span class="author"><a href="https://scholar.google.com/citations?user=OmIy5cgAAAAJ" target="_blank" rel="noopener">Dan Ben Ami</a><sup>1</sup></span>
         <span class="author"><a href="https://scholar.google.com/citations?user=ut_ISVIAAAAJ" target="_blank" rel="noopener">Tomer Galanti</a><sup>2</sup></span>
-        <span class="author is-decart"><a href="https://chaimbaskin.bgu.ac.il/" target="_blank" rel="noopener">Chaim Baskin</a><sup>1,3</sup> <span class="decart-chip" title="Decart.ai"><img src="assets/img/decart-all-blue-logo.svg" alt="">Decart</span></span>
+        <span class="author is-decart"><a href="https://chaimbaskin.bgu.ac.il/" target="_blank" rel="noopener">Chaim Baskin</a><sup>1,3</sup> <span class="decart-chip" title="Decart AI"><img src="assets/img/decart-all-blue-logo.svg" alt="">Decart</span></span>
       </div>
       <div class="affils">
         <span class="affil"><sup>1</sup><a href="https://insight.bgu.ac.il/" target="_blank" rel="noopener">INSIGHT Lab</a>, Ben-Gurion University of the Negev</span>
         <span class="affil"><sup>2</sup><a href="https://www.tamu.edu/" target="_blank" rel="noopener">Texas A&amp;M University</a></span>
-        <span class="affil is-decart"><sup>3</sup><a href="https://research.decart.ai/" target="_blank" rel="noopener">Decart.ai</a>, Israel</span>
+        <span class="affil is-decart"><sup>3</sup><a href="https://research.decart.ai/" target="_blank" rel="noopener">Decart AI</a></span>
         <span class="affil"><sup>*</sup>Equal contribution</span>
       </div>
 
@@ -237,17 +237,8 @@
 git clone https://github.com/GabrieleSerussi/vedje.git &amp;&amp; cd vedje
 pip install -e .
 
-<span class="c"># 2. recompute the paper's cache sizes and reranker size on a CPU</span>
-python reproduce/cpu_check.py
-
-<span class="c"># 3. on a GPU: index, prepare the first stage, train and rerank</span>
-CFG=configs/vedje_vp_msrvtt.yaml
-python scripts/extract_features.py --config $CFG
-python scripts/stage1_train_embeddings.py --config $CFG
-python scripts/mine_hard_negatives.py --config $CFG
-python scripts/stage1_test_features.py --config $CFG
-python scripts/train.py --config $CFG --output_dir output/vp_msrvtt
-python scripts/evaluate.py --config $CFG --checkpoint output/vp_msrvtt/checkpoint_03.pth</pre>
+<span class="c"># 2. on a GPU: index, prepare the first stage, train, rerank and evaluate</span>
+python scripts/run_all.py --config configs/vedje_vp_msrvtt.yaml</pre>
         </div>
       </div>
     </div>
@@ -428,7 +419,7 @@ c-1 5-5 9-11 9h-2L532 67 19 159h-2c-5 0-9-4-11-9l-5-22c-1-6 2-12 8-13z"/></svg><
     </div>
   </div>
   <div class="site-footer-note">
-    <div class="container">Project page for <em>VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval</em>. The charts redraw Figure 1 and plot values and gains from the paper's tables. The pipeline animation follows Figure 2 with illustrative values. The interactive cover is a schematic with illustrative frames, query and scores. Affiliations: INSIGHT Lab, Ben-Gurion University of the Negev; Texas A&amp;M University; and <a href="https://research.decart.ai/" target="_blank" rel="noopener">Decart.ai</a>.</div>
+    <div class="container">Project page for <em>VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval</em>. The charts redraw Figure 1 and plot values and gains from the paper's tables. The pipeline animation follows Figure 2 with illustrative values. The interactive cover is a schematic with illustrative frames, query and scores. Affiliations: INSIGHT Lab, Ben-Gurion University of the Negev; Texas A&amp;M University; and <a href="https://research.decart.ai/" target="_blank" rel="noopener">Decart AI</a>.</div>
   </div>
 </footer>
 
