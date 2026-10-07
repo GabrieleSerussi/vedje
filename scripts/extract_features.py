@@ -13,7 +13,6 @@ Usage (one process, or one process per GPU under torchrun):
 """
 
 import argparse
-import json
 import os
 import sys
 from pathlib import Path
@@ -66,7 +65,8 @@ def main(args):
     from tqdm import tqdm
 
     from vedje.config import load_config
-    from vedje.data import DATASET_REGISTRY
+    from vedje.data import DATASET_REGISTRY, feature_files
+    from vedje.data.utils import save_precomputed_features
     from vedje.features import extract_patch_features, load_backbone
 
     distributed = "RANK" in os.environ and "WORLD_SIZE" in os.environ
@@ -88,10 +88,8 @@ def main(args):
         raise ValueError("extract_features.py extracts VideoPrism features only")
 
     num_frames = config.get("num_frames", 16)
-    dataset_kind = config["train_dataset"]
-    reg = DATASET_REGISTRY[dataset_kind]
+    reg = DATASET_REGISTRY[config["train_dataset"]]
     video_root = config[reg["video_key"]]
-    ann_keys = [reg["train_ann_key"], reg["test_ann_key"]]
 
     output_dir = args.output_dir or config.get(reg["features_key"],
                                                config.get("precomputed_features_dir", ""))
@@ -100,19 +98,7 @@ def main(args):
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     # Unique videos across train + test: output .pt name -> relative input path
-    video_entries = {}
-    for ann_key in ann_keys:
-        ann_path = config.get(ann_key, "")
-        if not (ann_path and os.path.exists(ann_path)):
-            continue
-        with open(ann_path) as f:
-            for item in json.load(f):
-                rel = item["video"]
-                if dataset_kind == "activitynet":
-                    out_name = f"{item['video_id']}.pt"
-                else:
-                    out_name = os.path.splitext(os.path.basename(rel))[0] + ".pt"
-                video_entries.setdefault(out_name, rel)
+    video_entries = feature_files(config)
 
     existing = set(os.listdir(output_dir))
     todo = [(o, r) for o, r in sorted(video_entries.items()) if o not in existing]
@@ -143,10 +129,7 @@ def main(args):
         for j, out_name in enumerate(out_names):
             if not valid[j]:
                 continue
-            torch.save({
-                "local_patches": patch_tokens[j].to(torch.bfloat16).cpu(),
-                "v_global": v_global[j].to(torch.bfloat16).cpu(),
-            }, os.path.join(output_dir, out_name))
+            save_precomputed_features(os.path.join(output_dir, out_name), patch_tokens[j], v_global[j])
             extracted += 1
 
     if distributed:

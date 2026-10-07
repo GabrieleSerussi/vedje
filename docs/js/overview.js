@@ -18,7 +18,9 @@
    The storage counter uses the paper's numbers (Section 3.2): 2 bytes x M x d = 2 x 4 x 384 bytes = 3 KiB per frame
    and 48 KiB for 16 frames.
    URL flags: ?static=1 shows each scene's still frame; ?animScene=N (0 to 2) opens scene N, and with ?animT=ms it
-   shows that moment, paused. */
+   shows that moment, paused.
+   In Online reranking each candidate card carries its stored cache under its dimmed frames, and a copy of it flies
+   into the joint input when the candidate is read: the cache is loaded from the index, never computed online. */
 (function () {
   'use strict';
   var root = document.getElementById('vedjeAnim'); if (!root) return;
@@ -748,12 +750,27 @@
       text(pg0, p[0] + pw[k] / 2, p[1] + ph / 2 + fS * 0.36, QUERY[k], 'va-t va-small va-qt', 'middle');
       return pg0;
     });
-    var yCl = py0 + ph + 12 + fS * 0.85;
+    var yCl = py0 + ph + 12 + fS * 0.85, yRow = yCl;
     text(g, xIn, yCl, 'cache $Z(v)$', 'va-t va-small va-lab');
+    /* where the cache comes from: shown once a cache is loaded, and blue while one is on its way (a second line when
+       it does not fit) */
+    var LOADED = 'loaded from the index · 48 KiB', wcl = measure('cache $Z(v)$', 'va-t va-small va-lab') + 10;
+    var one1 = wcl + measure(LOADED, 'va-t va-small') <= inW;
+    if (!one1) yRow += fS * 1.3;
+    var load = text(g, one1 ? xIn + wcl : xIn, yRow, LOADED, 'va-t va-small va-load'); op(load, 0);
     var cs = 8, cg = 1.5, cpitch = (inW + 5) / T, cache = [];
-    for (i = 0; i < T; i++) cache.push(tok4(g, xIn + i * cpitch + (cpitch - 5) / 2, yCl + 7 + cs + 1, cs, cg, true));
-    var ey1 = yCl + 7 + 2 * cs + cg + 2 + ip, inR = mx + inW + 2 * ip;
+    for (i = 0; i < T; i++) cache.push(tok4(g, xIn + i * cpitch + (cpitch - 5) / 2, yRow + 7 + cs + 1, cs, cg, true));
+    var ey1 = yRow + 7 + 2 * cs + cg + 2 + ip, inR = mx + inW + 2 * ip;
     E('rect', { x: mx, y: ey0, width: rnd(inW + 2 * ip), height: rnd(ey1 - ey0), rx: 12, 'class': 'va-input' }, g);
+    /* a whole cache as one strip: the row's T token groups scaled by k around (cx, cy), on a backdrop of class cls */
+    var SP = 4, rowW = (T - 1) * cpitch + 2 * cs + cg, rowC = [cache[0].cx + (T - 1) / 2 * cpitch, cache[0].cy];
+    function strip(parent, cx, cy, k, cls) {
+      var sg = E('g', null, parent), r = [], bg = null;
+      if (cls) bg = E('rect', { x: rnd(cx - k * (rowW / 2 + SP)), y: rnd(cy - k * (cs + cg / 2 + SP)), width: rnd(k * (rowW + 2 * SP)), height: rnd(k * (2 * cs + cg + 2 * SP)), rx: rnd(Math.max(2, 6 * k)), 'class': cls }, sg);
+      for (var t = 0; t < T; t++) r.push(tok4(sg, cx + (t - (T - 1) / 2) * cpitch * k, cy, cs * k, cg * k, false));
+      return { g: sg, bg: bg, r: r, cx: cx, cy: cy, s: rowW * k };
+    }
+    function setStrip(st, Z) { st.r.forEach(function (t4, t) { setTok(t4, Z ? Z[t] : null); }); }
     /* no frozen visual encoder on the query path: its symbol in a crossed box, and the fact */
     function nog(x, y, maxW) {
       var gg = E('g', { 'class': 'va-nog' }, g), sw = measure('$g_ϕ$', 'va-t va-sym') + 12, bh0 = fT * 1.45;
@@ -799,7 +816,9 @@
       var cxE = W - mx - 100, ebN = fit('joint encoder', ['joint', 'encoder'], 2 * (W - mx - cxE)), prN = 12;
       enc = box(g, cxE - ebN.w / 2, ey1 + 24, ebN.w, ebN.h, ebN.lines, 'vedje');
       aIn = arrow(g, [[cxE, ey1 + 4], [cxE, enc.y - 4]]);
-      pl = plus(g, cxE, enc.b + 16 + vs + 22 + prN, prN);
+      /* the + node sits low enough that the stage-1 score fits between the first-stage box and e_rho, left of it */
+      var sbN = boxSize(['first stage', '$ρ(q, v)$']), rbN = boxSize(['$e_ρ(·)$']);
+      pl = plus(g, cxE, Math.max(enc.b + 16 + vs + 22 + prN, enc.y + sbN.h + fS * 1.4 + 12 + rbN.h / 2), prN);
       cvec = vec(g, cxE - 12 - vW, (enc.b + pl.cy - prN) / 2 - vs / 2, vs, 4);
       text(g, cxE + 12, cvec.cy + fT * 0.38, '$c(q, v)$', 'va-t va-sym va-blue');
       aC = arrow(g, [[cxE, enc.b + 4], [cxE, pl.cy - prN - 4]]);
@@ -809,7 +828,7 @@
       text(g, cxE - 8, hd.b + 10 + fT, '$s_θ(q, v)$', 'va-t va-sym va-blue', 'end');
       sVal = text(g, cxE + 8, hd.b + 10 + fT, '', 'va-t va-cnt');
       /* left column: the stage-1 score above e_rho, which feeds the + node from the left */
-      var sbN = boxSize(['first stage', '$ρ(q, v)$']), rbN = boxSize(['$e_ρ(·)$']), colC = mx + Math.max(sbN.w, rbN.w) / 2;
+      var colC = mx + Math.max(sbN.w, rbN.w) / 2;
       st1 = box(g, colC - sbN.w / 2, enc.y, sbN.w, sbN.h, sbN.lines, 'frozen');
       er = box(g, colC - rbN.w / 2, pl.cy - rbN.h / 2, rbN.w, rbN.h, rbN.lines, 'vedje');
       st1v = text(g, colC + 10, (st1.b + er.y) / 2 + fS * 0.36, '', 'va-t va-small va-mono');
@@ -827,32 +846,38 @@
       var yH = H1 + 20 + fS;
       hdr = text(g, mx, yH, 'candidates $C(q)$, sorted by $ρ(q, v)$', 'va-t va-small va-lab');
       hdr2 = text(g, mx, yH, 'candidates $C(q)$, sorted by $s_θ(q, v)$', 'va-t va-small va-lab'); op(hdr2, 0);
-      var fwC = 38, fhC = 28, cardW = (W - 2 * mx - 3 * 16) / 4, lineB = fS * 1.45, cardH = 10 + fhC + 8 + 3 * lineB + 6, y0 = yH + 10;
+      var fwC = 38, fhC = 28, cardW = (W - 2 * mx - 3 * 16) / 4, lineB = fS * 1.45, y0 = yH + 10;
+      /* the stored cache under the frames, as wide as they are */
+      var fsW = 4 * fwC + 3 * tg, kC = fsW / (rowW + 2 * SP), shC = kC * (2 * cs + cg + 2 * SP) + 4;
+      var cardH = 10 + fhC + 8 + shC + 3 * lineB + 6;
       for (i = 0; i < CANDS.length; i++) slotPos.push([mx + i * (cardW + 16), y0]);
       var symW = Math.max(measure('$ρ$', 'va-t va-small va-sym'), measure('$s_θ$', 'va-t va-small va-sym'));
       var barX = 12 + symW + 8, barW = cardW - barX - 10 - vw0 - 10;
       CANDS.forEach(function (cd, ci) {
-        var rg0 = E('g', { 'class': 'va-cand' }, g);
+        var rg0 = E('g', { 'class': 'va-cand' }, g), st = null;
         var bx = E('rect', { x: 0, y: 0, width: rnd(cardW), height: rnd(cardH), rx: 10, 'class': 'va-card' }, rg0);
         var rk = text(rg0, 16, 10 + fhC / 2 + fS * 0.36, String(ci + 1), 'va-t va-small va-rank', 'middle');
-        [1, 6, 11, 16].forEach(function (t, k) { frame(rg0, 30 + k * (fwC + tg), 10, fwC, fhC, cd.vid, false).set(t); });
+        [1, 6, 11, 16].forEach(function (t, k) { var f = frame(rg0, 30 + k * (fwC + tg), 10, fwC, fhC, cd.vid, false); f.set(t); op(f.g, 0.4); });
+        st = strip(rg0, 30 + fsW / 2, 10 + fhC + 5 + kC * (cs + cg / 2 + SP), kC, 'va-stripbg'); setStrip(st, cd.vid.Z);
         function line(row, sym, cls) {
-          var yy = 10 + fhC + 8 + row * lineB + lineB / 2;
+          var yy = 10 + fhC + 8 + shC + row * lineB + lineB / 2;
           text(rg0, 12, yy + fS * 0.36, sym, 'va-t va-small va-sym');
           E('rect', { x: rnd(barX), y: rnd(yy - 3.5), width: rnd(barW), height: 7, rx: 3.5, 'class': 'va-bartrack' }, rg0);
           var b = E('rect', { x: rnd(barX), y: rnd(yy - 3.5), width: 0, height: 7, rx: 3.5, 'class': cls }, rg0);
           var v = text(rg0, cardW - 10, yy + fS * 0.36, '', 'va-t va-small va-mono', 'end');
           return { b: b, v: v, x: barX, y: yy, w: barW };
         }
-        candLabel(rg0, 12, 10 + fhC + 8 + lineB / 2 + fS * 0.36, cd);
+        candLabel(rg0, 12, 10 + fhC + 8 + shC + lineB / 2 + fS * 0.36, cd);
         var r1 = line(1, '$ρ$', 'va-bar-rho'), r2 = line(2, '$s_θ$', 'va-bar-s');
         attr(r1.b, 'width', rnd(barW * cd.rho)); retext(r1.v, cd.rho.toFixed(2));
-        rows.push({ g: rg0, box: bx, rk: rk, s: r2, ci: ci });
+        rows.push({ g: rg0, box: bx, rk: rk, s: r2, ci: ci, st: st });
       });
       o.height = y0 + cardH + 6;
     } else {
       var NTN = [1, 8, 16], yHn = H1 + 20 + fS, fwN = 36, fhN = 27, stripW = NTN.length * fwN + (NTN.length - 1) * tg, rowH = Math.max(fhN + 10, fS * 1.6 + 12);
-      var labH = fS * 1.35, cardHn = rowH + labH;
+      /* the stored cache under the frames, as wide as they are */
+      var kN = stripW / (rowW + 2 * SP), shN = kN * (2 * cs + cg + 2 * SP) + 3;
+      var labH = fS * 1.35, cardHn = rowH + shN + labH;
       var sx = 24, rhoC = sx + stripW + 12 + vw0 / 2, barXn = rhoC + vw0 / 2 + 12, barWn = (W - 2 * mx) - 10 - vw0 - 8 - barXn;
       text(g, mx, yHn, 'candidates $C(q)$', 'va-t va-small va-lab');
       hRho = text(g, mx + rhoC, yHn, '$ρ$', 'va-t va-small va-sym', 'middle');
@@ -864,24 +889,32 @@
       var y0n = yHn + 10;
       for (i = 0; i < CANDS.length; i++) slotPos.push([mx, y0n + i * (cardHn + 6)]);
       CANDS.forEach(function (cd, ci) {
-        var rg0 = E('g', { 'class': 'va-cand' }, g);
+        var rg0 = E('g', { 'class': 'va-cand' }, g), st = null;
         var bx = E('rect', { x: 0, y: 0, width: rnd(W - 2 * mx), height: rnd(cardHn), rx: 9, 'class': 'va-card' }, rg0);
-        candLabel(rg0, sx, rowH - 2 + labH / 2 + fS * 0.36, cd);
+        candLabel(rg0, sx, rowH - 2 + shN + labH / 2 + fS * 0.36, cd);
         var rk = text(rg0, 12, rowH / 2 + fS * 0.36, String(ci + 1), 'va-t va-small va-rank', 'middle');
-        NTN.forEach(function (t, k) { frame(rg0, sx + k * (fwN + tg), (rowH - fhN) / 2, fwN, fhN, cd.vid, false).set(t); });
+        NTN.forEach(function (t, k) { var f = frame(rg0, sx + k * (fwN + tg), (rowH - fhN) / 2, fwN, fhN, cd.vid, false); f.set(t); op(f.g, 0.4); });
+        st = strip(rg0, sx + stripW / 2, (rowH + fhN) / 2 + 2 + kN * (cs + cg / 2 + SP), kN, 'va-stripbg'); setStrip(st, cd.vid.Z);
         var rv = text(rg0, rhoC, rowH / 2 + fS * 0.36, cd.rho.toFixed(2), 'va-t va-small va-mono va-rhov', 'middle');
         E('rect', { x: rnd(barXn), y: rnd(rowH / 2 - 3.5), width: rnd(barWn), height: 7, rx: 3.5, 'class': 'va-bartrack' }, rg0);
         var b = E('rect', { x: rnd(barXn), y: rnd(rowH / 2 - 3.5), width: 0, height: 7, rx: 3.5, 'class': 'va-bar-s' }, rg0);
         var v = text(rg0, W - 2 * mx - 10, rowH / 2 + fS * 0.36, '', 'va-t va-small va-mono', 'end');
-        rows.push({ g: rg0, box: bx, rk: rk, s: { b: b, v: v, x: barXn, y: rowH / 2, w: barWn }, ci: ci, rv: rv });
+        rows.push({ g: rg0, box: bx, rk: rk, s: { b: b, v: v, x: barXn, y: rowH / 2, w: barWn }, ci: ci, rv: rv, st: st });
       });
       o.height = y0n + CANDS.length * (cardHn + 6);
     }
     rows.slice().sort(function (r1, r2) { return RANK[r2.ci] - RANK[r1.ci]; }).forEach(function (r) { g.appendChild(r.g); });
     var flyDot = E('circle', { r: 4.5, 'class': 'va-flydot', opacity: 0 }, g);
+    /* a copy of the candidate's cache flies from its card into the row */
+    var fly = strip(g, 0, 0, 1, 'va-stripbg');
+    op(fly.g, 0); attr(fly.bg, 'vector-effect', 'non-scaling-stroke'); on(fly.bg, 'is-on', true);
     function rowXY(ci, p) {
       var k = span(p, CR, CR1), a = slotPos[ci], b = slotPos[RANK[ci]];
       return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+    }
+    function source(ci, p) {
+      var xy = rowXY(ci, p), st = rows[ci].st;
+      return { x: xy[0] + st.cx, y: xy[1] + st.cy, s: st.s };
     }
     function done(ci, p) { return p >= cStart(ci) + (ci === 0 ? 1950 : 860); }
     o.update = function (p) {
@@ -894,11 +927,27 @@
       var w = slow ? { fetch: [0, 350], enc: [350, 800], c: 600, pri: [800, 1200], e: 1000, head: [1200, 1600], s: 1400, wr: [1600, 1950] }
                    : { fetch: [0, 200], enc: [160, 380], c: 300, pri: [360, 560], e: 470, head: [540, 720], s: 640, wr: [700, 860] };
       var shown = act ? k : hold ? ORDER[0] : (p >= C1 + 3 * CS ? CANDS.length - 1 : 0), cd = CANDS[shown];
-      /* fetch the candidate's cached tokens, frame group by frame group */
+      /* the candidate's cached tokens fill the row as its copy lands */
       cache.forEach(function (c4, t) {
-        var vis = act ? a >= w.fetch[0] + (w.fetch[1] - w.fetch[0]) * t / T : any;
+        var vis = act ? a >= w.fetch[1] : any;
         setTok(c4, vis ? cd.vid.Z[t] : null);
       });
+      var kf = act ? (a - w.fetch[0]) / (w.fetch[1] - w.fetch[0]) : -1, flying = kf > 0 && kf < 1;
+      if (flying) {
+        /* from the card up to the row, growing mostly at the end; half way it passes right of the e_rho row (on
+           phones below the note, left of s_theta) */
+        var src = source(k, p), e1 = ease(clamp(kf)), sz = src.s + (rowW - src.s) * e1 * e1;
+        var c1 = [Math.max(src.x, rowC[0]) + 70, (src.y + rowC[1]) / 2];
+        if (N) {
+          var M = [mx + 4 + (src.s + (rowW - src.s) / 4) * (1 + 2 * SP / rowW) / 2, (ngp.b + yHn - fS) / 2];
+          c1 = [2 * M[0] - (src.x + rowC[0]) / 2, 2 * M[1] - (src.y + rowC[1]) / 2];
+        }
+        setStrip(fly, cd.vid.Z); op(fly.bg, 1 - span(kf, 0.75, 1));
+        flyTo(fly, [src.x, src.y], rowC, kf, sz, sz, c1);
+      }
+      op(fly.g, flying ? 1 : 0);
+      rows.forEach(function (r) { on(r.st.bg, 'is-on', flying && r.ci === k); });
+      op(load, span(p, C0, C0 + 200)); on(load, 'is-on', flying);
       var encOn = act && a >= w.enc[0] && a < w.enc[1];
       on(enc.g, 'is-on', encOn);
       flow(aIn, encOn && a < w.enc[0] + 160);

@@ -28,6 +28,7 @@ MAX_TEXT_CONTEXT_LENGTH = 64
 # Standard masked-language modelling (Appendix A.3): BERT's masking rate.
 MLM_PROBABILITY = 0.15
 
+# The built-in backbones; a config sets vision_dim, clip_dim and patches_per_frame for any other (vedje.backbone)
 ENCODER_CONFIGS = {
     # VideoPrism-B, 16 frames x 16x16 patches
     "videoprism": {"vision_dim": 768, "clip_dim": 768, "patches_per_frame": 256},
@@ -63,6 +64,9 @@ class VideoPretrainModel(nn.Module):
         delta_horizons: Sequence[int] = (3,),
         delta_num_layers: int = 2,
         delta_num_heads: int = 8,
+        vision_dim: Optional[int] = None,
+        clip_dim: Optional[int] = None,
+        patches_per_frame: Optional[int] = None,
     ):
         super().__init__()
         if clip_injection not in ("post_only", "off"):
@@ -76,10 +80,13 @@ class VideoPretrainModel(nn.Module):
         self.vision_encoder_name = vision_encoder
         self.vp_attn_implementation = vp_attn_implementation
 
-        enc_cfg = ENCODER_CONFIGS[vision_encoder]
-        self.vision_dim = enc_cfg["vision_dim"]
-        self.clip_dim = enc_cfg["clip_dim"]
-        patches_per_frame = enc_cfg["patches_per_frame"]
+        # The backbone's dimensions as given, otherwise those of a built-in backbone
+        enc_cfg = ENCODER_CONFIGS.get(vision_encoder, {})
+        self.vision_dim = vision_dim or enc_cfg.get("vision_dim")
+        self.clip_dim = clip_dim or enc_cfg.get("clip_dim")
+        patches_per_frame = patches_per_frame or enc_cfg.get("patches_per_frame")
+        if not (self.vision_dim and self.clip_dim and patches_per_frame):
+            raise ValueError(f"set vision_dim, clip_dim and patches_per_frame for the backbone {vision_encoder!r}")
         self.patches_per_frame = patches_per_frame
 
         # Joint encoder (MiniLM-L12-H384)
@@ -736,6 +743,9 @@ def build_model(config: dict, training: bool = True) -> VideoPretrainModel:
         delta_horizons=config.get('delta_horizons', [3]),
         delta_num_layers=config.get('delta_num_layers', 2),
         delta_num_heads=config.get('delta_num_heads', 8),
+        vision_dim=config.get('vision_dim'),
+        clip_dim=config.get('clip_dim'),
+        patches_per_frame=config.get('patches_per_frame'),
     )
 
 

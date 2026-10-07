@@ -134,6 +134,8 @@ def parse_args(argv=None):
 
 
 def main(args):
+    from vedje.data import stage1_layout
+
     args = resolve_paths(args)
     device = torch.device(args.device)
 
@@ -142,26 +144,8 @@ def main(args):
         annotations = json.load(f)
 
     # Collect unique videos and all captions (flattened in same order as dataset)
-    unique_videos = []
-    video_id_to_idx = {}
-    all_captions = []
-    caption_to_video_idx = []
-    vid_to_caption_indices = {}  # video_id -> list of global caption indices
-
-    for ann in annotations:
-        vid = ann.get("video_id", ann["video"])
-        video_file = ann["video"]
-        if vid not in video_id_to_idx:
-            video_id_to_idx[vid] = len(unique_videos)
-            unique_videos.append(video_file)
-            vid_to_caption_indices[vid] = []
-
-        captions = ann["caption"] if isinstance(ann["caption"], list) else [ann["caption"]]
-        for cap in captions:
-            cap_idx = len(all_captions)
-            all_captions.append(cap)
-            caption_to_video_idx.append(video_id_to_idx[vid])
-            vid_to_caption_indices[vid].append(cap_idx)
+    unique_videos, all_captions, layout = stage1_layout(annotations)
+    caption_to_video_idx = layout["caption_to_video_idx"]
 
     print(f"Unique videos: {len(unique_videos)}")
     print(f"Total captions: {len(all_captions)}")
@@ -192,10 +176,7 @@ def main(args):
     output = {
         "video_embeds": vid_feats,             # (num_unique_videos, 768)
         "text_embeds": text_feats,             # (num_total_captions, 768)
-        "video_ids": list(video_id_to_idx.keys()),
-        "video_id_to_idx": video_id_to_idx,
-        "caption_to_video_idx": caption_to_video_idx,
-        "vid_to_caption_indices": vid_to_caption_indices,
+        **layout,  # video_ids, video_id_to_idx, caption_to_video_idx, vid_to_caption_indices
     }
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)

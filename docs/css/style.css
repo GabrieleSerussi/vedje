@@ -380,6 +380,14 @@ button { font: inherit; color: inherit; }
 .article-body li { font-family: var(--font-body); font-size: calc(16px * var(--tscale)); line-height: 1.52; letter-spacing: -0.02em; margin-bottom: var(--space-xs); }
 .article-body a:not(.btn-pill):not(.article-closing-cta) { color: var(--accent-article); text-decoration: none; border-bottom: 1px solid rgba(61,94,202,0.3); }
 .article-body a:not(.btn-pill):not(.article-closing-cta):hover { border-color: var(--accent-article); }
+/* References: the name of a dataset or model links to its paper, in the text colour with a dotted underline that turns
+   solid and takes the accent on hover and focus ([href] gives these rules the weight of the two above, which they follow) */
+.article-body a.ref[href] { color: inherit; border-bottom: 1px dotted currentColor; white-space: nowrap; }
+.article-body a.ref[href]:hover, .article-body a.ref[href]:focus-visible { color: var(--accent-article); border-bottom-style: solid; border-bottom-color: var(--accent-article); }
+/* Papers line under a chart: class="chart-note chart-papers" keeps the note's small print at every width; it sits 6px
+   under the note, which drops its bottom margin there, so the two read as one caption */
+.article-body .chart-note:has(+ .chart-papers) { margin-bottom: 0; }
+.article-body .chart-note.chart-papers { margin-top: 6px; }
 .article-body strong { color: var(--text-primary); font-weight: 600; }
 .article-body em { color: var(--text-primary); font-style: italic; }
 .article-body code { font-family: var(--font-mono); font-size: 0.85em; background: var(--bg-tertiary); padding: 2px 6px; border-radius: var(--radius-sm); color: var(--accent-primary); }
@@ -1212,20 +1220,20 @@ button { font: inherit; color: inherit; }
 }
 
 /* ============================================================
-   The cover on wide screens (Decart version)
+   The cover on wide screens (both versions)
    From 1440px the cover keeps the layout it has at 560px and is zoomed to fill its column: js/cover.js
    sets the zoom from the column width and the window height (up to 1.6). The column takes what the
    text column (at most 754px) leaves, and the page grows with the screen up to 1840px. Windows at
-   least 980px tall have room for a 660px cover, so the column keeps at least 660px there (the text
+   least 1032px tall have room for a 660px cover, so the column keeps at least 660px there (the text
    column keeps 620px, enough for the title and the four logos in one row); the zoom in that block is
-   the value before the script runs. theme-classic.css resets these rules (the cover stacks there).
+   the value before the script runs. The classic version uses these rules too, in its own type.
    ============================================================ */
 @media (min-width: 1440px) {
   .article-header-main { flex: 0 1 754px; }
   .article-hero-demo { flex: 1 1 0; min-width: 560px; max-width: none; }
   #vedjeCover { width: 560px; margin-left: auto; }
 }
-@media (min-width: 1440px) and (min-height: 980px) {
+@media (min-width: 1440px) and (min-height: 1032px) {
   .article-hero-demo { min-width: 660px; }
   #vedjeCover { zoom: 1.178571; }
 }

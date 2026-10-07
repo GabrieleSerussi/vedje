@@ -1,3 +1,6 @@
+import json
+import os
+
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -41,6 +44,66 @@ DATASET_REGISTRY = {
         "features_key": "didemo_precomputed_features_dir",
     },
 }
+
+
+def feature_files(config: dict) -> dict:
+    """{feature file name: video path} for the unique videos of the config's training and test annotations.
+
+    One .pt file per video, named as the dataset loaders read it: <video_id>.pt for ActivityNet, otherwise the
+    video's file name with .pt. The video paths are relative to the dataset's video folder.
+    """
+    dataset_kind = config["train_dataset"]
+    reg = DATASET_REGISTRY[dataset_kind]
+    video_entries = {}
+    for ann_key in (reg["train_ann_key"], reg["test_ann_key"]):
+        ann_path = config.get(ann_key, "")
+        if not (ann_path and os.path.exists(ann_path)):
+            continue
+        with open(ann_path) as f:
+            for item in json.load(f):
+                rel = item["video"]
+                if dataset_kind == "activitynet":
+                    out_name = f"{item['video_id']}.pt"
+                else:
+                    out_name = os.path.splitext(os.path.basename(rel))[0] + ".pt"
+                video_entries.setdefault(out_name, rel)
+    return video_entries
+
+
+def stage1_layout(annotations: list) -> tuple:
+    """Training videos and captions in the order of the stage-1 training file (lvt_embeds_path).
+
+    Captions are flattened in annotation order, as the training datasets number their samples, and videos are
+    keyed by video_id, or by the video path where there is none. Returns the unique video paths, the captions as
+    written and the file's index: video_ids, video_id_to_idx, caption_to_video_idx and vid_to_caption_indices.
+    """
+    unique_videos = []
+    video_id_to_idx = {}
+    all_captions = []
+    caption_to_video_idx = []
+    vid_to_caption_indices = {}  # video_id -> list of global caption indices
+
+    for ann in annotations:
+        vid = ann.get("video_id", ann["video"])
+        video_file = ann["video"]
+        if vid not in video_id_to_idx:
+            video_id_to_idx[vid] = len(unique_videos)
+            unique_videos.append(video_file)
+            vid_to_caption_indices[vid] = []
+
+        captions = ann["caption"] if isinstance(ann["caption"], list) else [ann["caption"]]
+        for cap in captions:
+            cap_idx = len(all_captions)
+            all_captions.append(cap)
+            caption_to_video_idx.append(video_id_to_idx[vid])
+            vid_to_caption_indices[vid].append(cap_idx)
+
+    return unique_videos, all_captions, {
+        "video_ids": list(video_id_to_idx.keys()),
+        "video_id_to_idx": video_id_to_idx,
+        "caption_to_video_idx": caption_to_video_idx,
+        "vid_to_caption_indices": vid_to_caption_indices,
+    }
 
 
 def _vision_encoder_params(config: dict) -> dict:

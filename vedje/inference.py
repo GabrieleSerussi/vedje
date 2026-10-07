@@ -11,7 +11,9 @@
 Indexing runs the frozen VideoPrism-B encoder once per video, writes its cache with the trained compressor and
 keeps its first-stage (VideoPrism-LvT) embedding. Searching runs no visual encoder: the first stage keeps the
 most similar videos, and VEDJE reranks them from their caches, with the first-stage score as its prior (Eq. 5).
-The `vedje index` and `vedje search` commands wrap this module.
+A checkpoint trained with another backbone (vedje.backbone) indexes and searches with that backbone instead,
+loaded from the class its config names or given as `backbone=`. The `vedje index` and `vedje search` commands
+wrap this module.
 """
 
 from dataclasses import dataclass, field
@@ -96,17 +98,22 @@ def rank(model, query: str, query_stage1: torch.Tensor, index: Index, top: int =
 class VEDJE:
     """A trained VEDJE reranker with the frozen encoders it needs to index and search."""
 
-    def __init__(self, model, config: dict, checkpoint: str = "", device: Optional[str] = None):
+    def __init__(self, model, config: dict, checkpoint: str = "", device: Optional[str] = None, backbone=None):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device, dtype=torch.float32).eval()
         self.config = config
         self.checkpoint = checkpoint
-        self._backbone = None
+        self.backbone = backbone   # a vedje.backbone.Backbone for a checkpoint trained with another backbone
+        self._videoprism = None
         self._lvt = None
 
     @classmethod
-    def from_checkpoint(cls, path: Union[str, Path], device: Optional[str] = None) -> "VEDJE":
-        """Load a checkpoint written by `vedje train` (scripts/train.py); it carries its own config."""
+    def from_checkpoint(cls, path: Union[str, Path], device: Optional[str] = None, backbone=None) -> "VEDJE":
+        """Load a checkpoint written by `vedje train` (scripts/train.py); it carries its own config.
+
+        backbone: for a checkpoint trained with another backbone, a Backbone or its `module:Class`; by default the
+        class that its config names (written by vedje.backbone.prepare).
+        """
         from vedje.model import build_model
         ckpt = torch.load(str(path), map_location="cpu")
         config = dict(ckpt["config"])
@@ -116,7 +123,16 @@ class VEDJE:
         lost = [m for m in missing if m in trainable]
         if lost:
             raise RuntimeError(f"{path} lacks {len(lost)} trained weights, for example {lost[:3]}")
-        return cls(model, config, checkpoint=str(path), device=device)
+        backbone = backbone or config.get("backbone")
+        if isinstance(backbone, str):
+            from vedje.backbone import load
+            backbone = load(backbone)
+        return cls(model, config, checkpoint=str(path), device=device, backbone=backbone)
+
+    def _check_encoders(self):
+        if self.backbone is None and self.config.get("vision_encoder", "videoprism") != "videoprism":
+            raise ValueError(f"this checkpoint was trained with the {self.config['vision_encoder']} backbone: give it "
+                             "as backbone=MyBackbone() or --backbone module:Class (see vedje.backbone)")
 
     def _first_stage(self):
         if self._lvt is None:
@@ -126,12 +142,12 @@ class VEDJE:
         return self._lvt
 
     def _encoder(self):
-        if self._backbone is None:
+        if self._videoprism is None:
             from vedje.features import DEFAULT_BACKBONE, load_backbone
-            self._backbone = load_backbone(self.config.get("vision_encoder_path") or DEFAULT_BACKBONE,
+            self._videoprism = load_backbone(self.config.get("vision_encoder_path") or DEFAULT_BACKBONE,
                                            attn_implementation=self.config.get("vp_attn_implementation", "eager"),
                                            device=self.device)
-        return self._backbone
+        return self._videoprism
 
     @torch.inference_mode()
     def index(self, videos, batch_size: int = 4, progress: bool = True) -> Index:
@@ -141,12 +157,12 @@ class VEDJE:
         from vedje.lvt import video_embeddings
         from vedje.video import load_video_frames
 
-        if self.config.get("vision_encoder", "videoprism") != "videoprism":
-            raise ValueError("indexing new videos needs a VideoPrism checkpoint; the VideoCLIP-XL configuration "
-                             "reads features computed outside this repository")
+        self._check_encoders()
         paths = list_videos(videos)
-        encoder, (lvt, _) = self._encoder(), self._first_stage()
         num_frames = self.config.get("num_frames", 16)
+        if self.backbone is not None:
+            return self._index_with_backbone(paths, num_frames, progress)
+        encoder, (lvt, _) = self._encoder(), self._first_stage()
         caches, stage1 = [], []
         for start in tqdm(range(0, len(paths), batch_size), desc="Indexing", disable=not progress):
             frames = torch.stack([load_video_frames(p, num_frames, size=288, normalize=False)
@@ -159,12 +175,32 @@ class VEDJE:
         return Index(videos=paths, caches=torch.cat(caches), stage1=torch.cat(stage1),
                      checkpoint=self.checkpoint, config=self.config)
 
+    def _index_with_backbone(self, paths: List[str], num_frames: int, progress: bool) -> Index:
+        """Index with another backbone, reading each video as vedje.backbone.prepare did for training."""
+        from tqdm import tqdm
+        from vedje.video import load_video_frames
+
+        backbone, caches, stage1 = self.backbone, [], []
+        for p in tqdm(paths, desc="Indexing", disable=not progress):
+            frames = load_video_frames(p, num_frames, size=backbone.frame_size, normalize=False)    # (T, 3, H, W)
+            patches = backbone.patches(frames).reshape(1, -1, backbone.patch_dim)                  # (1, T*P, D)
+            # the patch features in bf16, as training reads them, then the cache written by the trained compressor
+            tokens = self.model.vision_projection(patches.to(torch.bfloat16).float().to(self.device))
+            caches.append(tokens.to(torch.bfloat16).cpu())
+            stage1.append(F.normalize(backbone.embed_video(frames).float().flatten(), dim=0).cpu())
+        return Index(videos=paths, caches=torch.cat(caches), stage1=torch.stack(stage1),
+                     checkpoint=self.checkpoint, config=self.config)
+
     @torch.inference_mode()
     def search(self, query: str, index: Index, top: int = 10, candidates: int = 20) -> List[Hit]:
         """The `top` best videos for a text query: first-stage candidates, reranked by VEDJE from their caches."""
-        from vedje.lvt import text_embeddings
-        lvt, tokenizer = self._first_stage()
-        inputs = tokenizer([query], padding=True, truncation=True, max_length=64, return_tensors="pt").to(self.device)
-        q = text_embeddings(lvt.text_model(input_ids=inputs.input_ids, attention_mask=inputs.attention_mask))
-        q = F.normalize(q.float(), dim=-1)[0].cpu()
+        self._check_encoders()
+        if self.backbone is not None:
+            q = F.normalize(self.backbone.embed_texts([query]).float(), dim=-1)[0].cpu()
+        else:
+            from vedje.lvt import text_embeddings
+            lvt, tokenizer = self._first_stage()
+            inputs = tokenizer([query], padding=True, truncation=True, max_length=64, return_tensors="pt").to(self.device)
+            q = text_embeddings(lvt.text_model(input_ids=inputs.input_ids, attention_mask=inputs.attention_mask))
+            q = F.normalize(q.float(), dim=-1)[0].cpu()
         return rank(self.model, query, q, index, top=top, candidates=candidates, device=self.device)

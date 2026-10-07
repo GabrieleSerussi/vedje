@@ -3,10 +3,13 @@
     vedje train configs/vedje_vp_msrvtt.yaml
     vedje index output/vedje_vp_msrvtt/checkpoint_03.pth my_videos/ --out my_index.pt
     vedje search my_index.pt "a person walks across a field"
+    vedje prepare my_backbone:MyBackbone configs/vedje_vp_msrvtt.yaml --out output/my_backbone
 
 `vedje train` runs the step scripts in scripts/ in order (index the dataset's videos, prepare the first stage,
 train, rerank and evaluate) and skips the steps whose outputs exist, so running it again resumes where it stopped.
 `vedje index` and `vedje search` use a trained checkpoint through vedje.inference.
+`vedje prepare` encodes a config's dataset with another backbone (vedje.backbone) and writes a config for `vedje train`;
+`vedje index` and `vedje search` then load that backbone from the checkpoint, or from --backbone.
 """
 
 import argparse
@@ -16,6 +19,7 @@ import sys
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
+BACKBONE_HELP = "another backbone as module:Class or path/to/module.py:Class (default: the one the checkpoint names)"
 
 
 def plan(config_path, output_dir=None):
@@ -55,9 +59,14 @@ def train(args):
             subprocess.run([sys.executable, str(SCRIPTS / script), "--config", args.config, *extra], check=True)
 
 
+def prepare(args):
+    from vedje.backbone import load, prepare as prepare_backbone
+    prepare_backbone(load(args.backbone), args.config, args.out, batch_size=args.batch_size, num_workers=args.num_workers)
+
+
 def index(args):
     from vedje.inference import VEDJE
-    vedje = VEDJE.from_checkpoint(args.checkpoint, device=args.device)
+    vedje = VEDJE.from_checkpoint(args.checkpoint, device=args.device, backbone=args.backbone)
     idx = vedje.index(args.videos if len(args.videos) > 1 else args.videos[0], batch_size=args.batch_size)
     idx.save(args.out)
     print(f"Indexed {len(idx)} videos into {args.out}")
@@ -66,7 +75,7 @@ def index(args):
 def search(args):
     from vedje.inference import VEDJE, Index
     idx = Index.load(args.index)
-    vedje = VEDJE.from_checkpoint(args.checkpoint or idx.checkpoint, device=args.device)
+    vedje = VEDJE.from_checkpoint(args.checkpoint or idx.checkpoint, device=args.device, backbone=args.backbone)
     hits = vedje.search(args.query, idx, top=args.top, candidates=args.candidates)
     print(f"{'rank':>4}  {'score':>7}  {'first stage':>11}  video")
     for h in hits:
@@ -83,12 +92,21 @@ def main(argv=None):
     p.add_argument("--dry_run", action="store_true", help="print the steps without running them")
     p.set_defaults(func=train)
 
+    p = sub.add_parser("prepare", help="encode a config's dataset with another backbone and write a config for it")
+    p.add_argument("backbone", help="the Backbone subclass as module:Class, for example my_backbone:MyBackbone")
+    p.add_argument("config", help="the config whose dataset to encode, for example configs/vedje_vp_msrvtt.yaml")
+    p.add_argument("--out", required=True, help="the folder to write to, for example output/my_backbone")
+    p.add_argument("--batch_size", type=int, default=256, help="captions per embed_texts call (default: 256)")
+    p.add_argument("--num_workers", type=int, default=4, help="processes that decode the videos (default: 4)")
+    p.set_defaults(func=prepare)
+
     p = sub.add_parser("index", help="index video files once with a trained checkpoint")
     p.add_argument("checkpoint", help="a checkpoint written by vedje train")
     p.add_argument("videos", nargs="+", help="a folder of video files, or the files themselves")
     p.add_argument("--out", default="vedje_index.pt", help="where to save the index (default: vedje_index.pt)")
     p.add_argument("--batch_size", type=int, default=4)
     p.add_argument("--device", default=None, help="default: cuda when available, otherwise cpu")
+    p.add_argument("--backbone", default=None, help=BACKBONE_HELP)
     p.set_defaults(func=index)
 
     p = sub.add_parser("search", help="search an index with a text query")
@@ -98,6 +116,7 @@ def main(argv=None):
     p.add_argument("--candidates", type=int, default=20, help="first-stage candidates that VEDJE reranks (default: 20)")
     p.add_argument("--checkpoint", default=None, help="default: the checkpoint that wrote the index")
     p.add_argument("--device", default=None, help="default: cuda when available, otherwise cpu")
+    p.add_argument("--backbone", default=None, help=BACKBONE_HELP)
     p.set_defaults(func=search)
 
     args = parser.parse_args(argv)

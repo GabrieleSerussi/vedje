@@ -1,19 +1,24 @@
 /* VEDJE project page: the interactive cover, "Index once, rerank every query".
    Builds everything inside #vedjeCover. Vanilla JS, no dependencies.
 
-   Taken from the paper: T = 16 sampled frames, P = 256 patch positions per frame (16 x 16), M = 4 or 1 tokens per
-   frame, d = 384 and two bytes per element (Section 3.2, Appendix A.2), so the cache payload is 2 x T x M x d bytes:
-   3,072 bytes per frame and 48 KiB per video at four tokens, 768 bytes and 12 KiB at one token. The frame-and-patch
-   features of the same video take 2 x 16 x 257 x 768 bytes = 6.02 MiB (Table 9). The order of the steps follows
-   Figure 2 and Algorithm 1: the frozen encoder runs once per video, the compressor turns each frame-indexed slice
-   into M tokens stored at its temporal position, the first stage returns the candidates with their scores, the joint
-   encoder reads the query tokens next to each cached sequence, the first-stage score joins its output as a prior,
-   and the candidates are sorted by the final score, with no visual encoder on the query path.
+   Taken from the paper: T = 16 sampled frames, P = 256 patch positions per frame (16 x 16), M = 4 tokens per frame,
+   d = 384 and two bytes per element (Section 3.2, Appendix A.2), so the cache payload is 2 x T x M x d bytes: 3,072
+   bytes per frame and 48 KiB per video. The frame-and-patch features of the same video take 2 x 16 x 257 x 768 bytes
+   = 6.02 MiB (Table 9). The order of the steps follows Figure 2 and Algorithm 1: the frozen encoder runs once per
+   video, the compressor turns each frame-indexed slice into M tokens stored at its temporal position, the first stage
+   returns the candidates with their scores, the joint encoder reads the query tokens next to each cached sequence,
+   the first-stage score joins its output as a prior, and the candidates are sorted by the final score, with no visual
+   encoder on the query path.
+   The second mode draws a typical joint reranker on the same video, query, candidates and steps, kept generic: offline
+   the encoder writes one first-stage embedding and no cache; online a visual encoder runs on the frames of each
+   candidate and a large joint model scores them. It shows no storage, latency or cost figure of its own. Its caption
+   cites Appendix B (Table 22): the LamRA reproduction, with a 7.6B decoder, reaches 59.7 MSR-VTT text-to-video R@1
+   and VEDJE 59.8 with about 157M online parameters, so both modes end in the same order.
    Illustrative: the drawn frames, the query and all scores. Three candidates share the field of the indexed video and
    differ only in what happens, which is why they look alike to the first stage.
 
    URL flags: ?static=1 freezes step 20 (the third candidate is read, the cache is complete) without autoplay or
-   transitions; ?cover=16 opens the 16-token mode; ?coverStep=N opens step N (1 to 23), paused. */
+   transitions; ?coverMode=typical opens the typical reranker; ?coverStep=N opens step N (1 to 23), paused. */
 (function () {
   'use strict';
 
@@ -27,41 +32,47 @@
   var stepFlag = search.match(/[?&]coverStep=(\d+)/);
 
   /* ---------------- facts of the schematic ---------------- */
-  var T = 16, P = 256, D = 384, BYTES = 2, NC = 5;
+  var T = 16, P = 256, M = 4, D = 384, BYTES = 2, NC = 5;
   var S_QUERY = T + 1;          // 17: the query arrives and the first stage returns its candidates
-  var S_READ = T + 2;           // 18 to 22: the joint encoder reads one candidate per step
+  var S_READ = T + 2;           // 18 to 22: the reranker reads one candidate per step
   var S_SORT = T + 2 + NC;      // 23: the candidates are sorted by the final score
   var N = S_SORT;
   var STATIC_STEP = S_READ + 2; // 20: the indexed video (stage-1 rank 3) is read
-  var MODES = { '64': { m: 4 }, '16': { m: 1 } };   // tokens per frame in each mode
+  var EMB = 8;                  // cells drawn for the first-stage embedding of the typical reranker
   var FULL_BYTES = BYTES * T * 257 * 768;   // frame-and-patch features of one video (Table 9)
 
-  function cacheBytes(frames, m) { return BYTES * frames * m * D; }
+  function cacheBytes(frames) { return BYTES * frames * M * D; }
   function kib(bytes) { return (Math.round(bytes / 1024 * 100) / 100) + '\u00a0KiB'; }
   function mib(bytes) { return (bytes / 1048576).toFixed(2) + '\u00a0MiB'; }
 
   var QUERY = 'a person walks across a field';
   var QUERY_TOKENS = 6;
-  /* the five candidates in stage-1 order; prior is the first-stage score, score the final score (both illustrative) */
+  /* the five candidates in stage-1 order; prior is the first-stage score, score the final VEDJE score and typ the score
+     of the typical reranker (all illustrative; typ keeps the order of score, as the two reach matching R@1) */
   var CANDS = [
-    { kind: 'stand', label: 'Person stands in the field', prior: 0.74, score: 0.38 },
-    { kind: 'dog', label: 'Dog runs across the field', prior: 0.71, score: 0.21 },
-    { kind: 'walk', label: 'Person walks across the field', prior: 0.69, score: 0.91, match: true },
-    { kind: 'beach', label: 'Person walks on a beach', prior: 0.63, score: 0.64 },
-    { kind: 'bike', label: 'Person rides a bike on a road', prior: 0.58, score: 0.12 }
+    { kind: 'stand', label: 'Person stands in the field', prior: 0.74, score: 0.38, typ: 0.41 },
+    { kind: 'dog', label: 'Dog runs across the field', prior: 0.71, score: 0.21, typ: 0.18 },
+    { kind: 'walk', label: 'Person walks across the field', prior: 0.69, score: 0.91, typ: 0.89, match: true },
+    { kind: 'beach', label: 'Person walks on a beach', prior: 0.63, score: 0.64, typ: 0.60 },
+    { kind: 'bike', label: 'Person rides a bike on a road', prior: 0.58, score: 0.12, typ: 0.15 }
   ];
   var order = CANDS.map(function (c, i) { return i; }).sort(function (a, b) { return CANDS[b].score - CANDS[a].score; });
   CANDS.forEach(function (c, i) { c.s1 = i + 1; c.rank = order.indexOf(i) + 1; });
   var MATCH = 2;
 
-  var FINE = '<small class="vc-fine">The frames, the query and the scores are illustrative. ' +
-    'Cache sizes follow Section 3.2 and Table 9 of the paper.</small>';
+  var ILLUSTRATIVE = 'The frames, the query, the scores and the timing are illustrative.';
+  var FINE = '<small class="vc-fine">' + ILLUSTRATIVE + ' Cache sizes follow Table 9 of the paper, and parameter counts Appendix B.</small>';
+  /* per query, for both pipelines: the visual encoder runs for the candidates shown, and the online parameters of
+     VEDJE and of the 7.6B decoder of the LamRA reproduction (Appendix B, Table 22) */
+  var COSTS = [['Visual encoder runs', [0, '0'], [NC, String(NC)]], ['Online parameters', [157e6, '157M'], [7.6e9, '7.6B']]];
+  /* the typical caption is kept no longer than the VEDJE one, so the shared caption cell keeps the card's height */
   var CAPTIONS = {
-    '64': '<strong>Index once, rerank every query.</strong> Offline, each frame is compressed into four tokens, kept in ' +
+    vedje: '<strong>Index once, rerank every query.</strong> Offline, each frame is compressed into four tokens, kept in ' +
       'temporal order. Online, the first stage ranks look-alike scenes first. VEDJE reads each candidate\'s cache with ' +
       'the query and moves the matching video to the top. ' + FINE,
-    '16': '<strong>One token per frame.</strong> Each frame is compressed into a single token, so a video takes 12 KiB. ' +
-      'The frame order and the reranking stay the same. ' + FINE
+    typical: '<strong>Encode every candidate at query time.</strong> A typical joint reranker encodes each candidate\'s ' +
+      'frames for every query. The LamRA reproduction runs a 7.6B decoder and reaches 59.7 MSR-VTT text-to-video R@1. ' +
+      'VEDJE reaches 59.8 with about 157M online parameters (Appendix&nbsp;B). <small class="vc-fine">' + ILLUSTRATIVE + '</small>'
   };
 
   /* ---------------- small helpers ---------------- */
@@ -83,6 +94,8 @@
   }
   /* a fixed shade per cached token, so the cache of the indexed video looks the same in both panels */
   function tokShade(video, t, m) { return (0.6 + 0.4 * hash(video + 3, t + 11, m + 5)).toFixed(2); }
+  /* the first-stage embedding of the typical reranker shifts a little with each frame the encoder reads */
+  function embShade(j, t) { return (0.4 + 0.42 * hash(17, 0, j) + 0.18 * hash(17, t, j)).toFixed(2); }
 
   /* ---------------- the drawn scenes (32 x 24 frame units) ----------------
      Each scene is described once and painted twice: as SVG for the frames and thumbnails, and on a small canvas whose
@@ -268,13 +281,12 @@
   root.innerHTML = '';
   if (STATIC) root.classList.add('vc-static');
 
-  /* top: mode toggle and step counter */
+  /* top: pipeline toggle and step counter */
   var top = el('div', 'sim-top');
-  var seg = el('div', 'seg'); seg.setAttribute('role', 'tablist'); seg.setAttribute('aria-label', 'Cache size');
-  [['64', '64 tokens', '48'], ['16', '16 tokens', '12']].forEach(function (d) {
+  var seg = el('div', 'seg'); seg.setAttribute('role', 'tablist'); seg.setAttribute('aria-label', 'Pipeline');
+  [['vedje', 'VEDJE', 'VEDJE'], ['typical', 'Typical reranker', 'Typical']].forEach(function (d) {
     var b = el('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('data-mode', d[0]);
-    b.innerHTML = '<span class="lbl-long">' + d[1] + ' · ' + d[2] + ' <span class="vc-u">KiB</span></span>' +
-      '<span class="lbl-short">' + d[1] + '</span>';
+    b.innerHTML = '<span class="lbl-long">' + d[1] + '</span><span class="lbl-short">' + d[2] + '</span>';
     seg.appendChild(b);
   });
   var stepBox = el('div', 'sim-step'); stepBox.innerHTML = 'Step <strong>1</strong> / ' + N;
@@ -307,7 +319,7 @@
   var comp = el('div', 'vc-box vc-comp'); comp.innerHTML = '<span>Compressor</span>';
   var out = el('div', 'vc-out');
   var outTok = el('span', 'vc-tok-group vc-out-tok'); var outToks = [];
-  for (var m = 0; m < 4; m++) { var oi = el('i'); outTok.appendChild(oi); outToks.push(oi); }
+  for (var m = 0; m < M; m++) { var oi = el('i'); outTok.appendChild(oi); outToks.push(oi); }
   var outLbl = el('span', 'vc-out-lbl');
   out.appendChild(outTok); out.appendChild(outLbl);
   function arrow(label) {
@@ -316,9 +328,16 @@
     return a;
   }
   var arrPatch = arrow(true), arrTok = arrow(true);
+  arrTok.classList.add('vc-arrow-tok');
+  /* the typical reranker: the encoder writes one first-stage embedding per video in place of the compressor's tokens */
+  var emb = el('div', 'vc-emb'), embVec = el('span', 'vc-emb-vec'), embCells = [];
+  for (var j = 0; j < EMB; j++) { var ec = el('i'); embVec.appendChild(ec); embCells.push(ec); }
+  embVec.setAttribute('aria-hidden', 'true');
+  emb.appendChild(embVec); emb.appendChild(el('span', 'vc-emb-lbl', 'First-stage embedding'));
   pipe.appendChild(enc); pipe.appendChild(arrow(false)); pipe.appendChild(mosaic); pipe.appendChild(arrPatch);
-  pipe.appendChild(comp); pipe.appendChild(arrTok); pipe.appendChild(out);
+  pipe.appendChild(comp); pipe.appendChild(arrTok); pipe.appendChild(out); pipe.appendChild(emb);
   arrPatch.firstChild.textContent = P + ' patches';
+  arrTok.firstChild.textContent = M + ' tokens';
   pIndex.appendChild(pipe);
 
   var cacheRow = el('div', 'vc-cache'); cacheRow.setAttribute('aria-hidden', 'true');
@@ -326,11 +345,17 @@
   var slots = [], zl = [];
   for (t = 1; t <= T; t++) {
     var sl = el('span', 'vc-tok-group vc-slot');
-    for (m = 0; m < 4; m++) { var ti = el('i'); ti.style.opacity = tokShade(MATCH, t, m); sl.appendChild(ti); }
+    for (m = 0; m < M; m++) { var ti = el('i'); ti.style.opacity = tokShade(MATCH, t, m); sl.appendChild(ti); }
     cacheRow.appendChild(sl); slots.push(sl);
     var z = el('span', null, 'Z' + t); zRow.appendChild(z); zl.push(z);
   }
-  pIndex.appendChild(cacheRow); pIndex.appendChild(zRow);
+  /* the labels Z1 to Z16 and the typical reranker's empty-cache line share one grid cell, so the panel keeps its height */
+  var zBox = el('div', 'vc-zbox');
+  var noCache = el('p', 'vc-nocache');
+  noCache.innerHTML = '<span class="lbl-long">No cache: the reranker encodes the frames again at query time</span>' +
+    '<span class="lbl-short">No cache: frames are encoded again online</span>';
+  zBox.appendChild(zRow); zBox.appendChild(noCache);
+  pIndex.appendChild(cacheRow); pIndex.appendChild(zBox);
 
   var meter = el('div', 'vc-meter');
   meter.appendChild(el('span', 'eyebrow', 'Stored per video'));
@@ -355,16 +380,24 @@
   qSizer.setAttribute('aria-hidden', 'true'); qText.appendChild(qSizer); qText.appendChild(qTyped); qBox.appendChild(qText);
   var s1Box = el('div', 'vc-box vc-stage vc-s1'); s1Box.innerHTML = '<span>First stage</span>';
   var jeBox = el('div', 'vc-box vc-stage vc-je'); jeBox.innerHTML = '<span>Joint encoder</span>';
+  /* the typical reranker runs two steps for every candidate where VEDJE runs its joint encoder */
+  var pair = el('div', 'vc-pair');
+  var veBox = el('div', 'vc-box vc-stage vc-ve'); veBox.innerHTML = '<span>Visual encoder</span>';
+  var jmBox = el('div', 'vc-box vc-stage vc-jm'); jmBox.innerHTML = '<span>Large joint model</span>';
+  pair.appendChild(veBox); pair.appendChild(jmBox);
   var calls = el('p', 'vc-calls'); calls.innerHTML = 'Visual encoder calls at query time: <b>0</b>';
-  side.appendChild(qBox); side.appendChild(s1Box); side.appendChild(jeBox); side.appendChild(calls);
+  var callsNum = calls.querySelector('b');
+  side.appendChild(qBox); side.appendChild(s1Box); side.appendChild(jeBox); side.appendChild(pair); side.appendChild(calls);
 
   var links = sv('svg', { class: 'vc-links', 'aria-hidden': 'true', focusable: 'false' });
   var fan = [], k;
   for (k = 0; k < NC; k++) { var fp = sv('path', { class: 'vc-link vc-link-s1' }); links.appendChild(fp); fan.push(fp); }
+  var veLink = sv('path', { class: 'vc-link vc-link-ve' });
   var jeLink = sv('path', { class: 'vc-link vc-link-je' }), jeDot = sv('circle', { class: 'vc-link-dot', r: 2.6 });
-  links.appendChild(jeLink); links.appendChild(jeDot);
+  links.appendChild(veLink); links.appendChild(jeLink); links.appendChild(jeDot);
 
   var list = el('ol', 'vc-list');
+  var scores = [], strips = [];
   var rows = CANDS.map(function (cd, i) {
     var li = el('li', 'vc-cand' + (cd.match ? ' is-match' : ''));
     li.style.setProperty('--i', i);
@@ -382,22 +415,41 @@
     var cs = el('span', 'vc-cs');
     for (var tt = 1; tt <= T; tt++) {
       var g = el('span', 'vc-tok-group');
-      for (var mm = 0; mm < 4; mm++) { var ii = el('i'); ii.style.opacity = tokShade(i, tt, mm); g.appendChild(ii); }
+      for (var mm = 0; mm < M; mm++) { var ii = el('i'); ii.style.opacity = tokShade(i, tt, mm); g.appendChild(ii); }
       cs.appendChild(g);
     }
-    inp.appendChild(qt); inp.appendChild(cs);
+    /* the typical reranker has no cache to read: the candidate's frames, lit while the visual encoder reads them */
+    var fs = el('span', 'vc-fs'); strips.push(fs);
+    inp.appendChild(qt); inp.appendChild(cs); inp.appendChild(fs);
     main.appendChild(desc); main.appendChild(inp);
     var pr = el('span', 'vc-prior', cd.prior.toFixed(2)); pr.setAttribute('title', 'First-stage score');
-    var sc = el('span', 'vc-score', cd.score.toFixed(2));
+    var sc = el('span', 'vc-score', cd.score.toFixed(2)); scores.push(sc);
     li.appendChild(rk); li.appendChild(th); li.appendChild(main); li.appendChild(pr); li.appendChild(sc);
     list.appendChild(li);
     return li;
   });
   var listWrap = el('div', 'vc-listwrap'), listHead = el('div', 'vc-listhead');
   listHead.innerHTML = '<span class="vc-lh-c">Candidates</span><span class="vc-lh-s">First stage</span><span class="vc-lh-v">VEDJE</span>';
+  var lhScore = listHead.querySelector('.vc-lh-v');
   listWrap.appendChild(listHead); listWrap.appendChild(list);
   body.appendChild(side); body.appendChild(links); body.appendChild(listWrap);
   pOnline.appendChild(body);
+  /* both pipelines side by side, whichever is shown: VEDJE runs no visual encoder per query and has far fewer
+     online parameters; the bars of each row share one scale */
+  var costs = el('div', 'vc-costs');
+  costs.appendChild(el('span', 'eyebrow vc-costs-t', 'Per query'));
+  costs.appendChild(el('span', 'vc-costs-h is-vedje', 'VEDJE'));
+  costs.appendChild(el('span', 'vc-costs-h is-typ', 'Typical reranker'));
+  COSTS.forEach(function (c) {
+    costs.appendChild(el('span', 'vc-cost-l', c[0]));
+    [[c[1], 'is-vedje'], [c[2], 'is-typ']].forEach(function (v) {
+      var cell = el('span', 'vc-cost ' + v[1]), track = el('span', 'vc-cost-track'), fill = el('i');
+      fill.style.width = (100 * v[0][0] / Math.max(c[1][0], c[2][0])).toFixed(2) + '%';
+      track.appendChild(fill); cell.appendChild(track); cell.appendChild(el('b', 'vc-cost-v', v[0][1]));
+      costs.appendChild(cell);
+    });
+  });
+  pOnline.appendChild(costs);
   root.appendChild(pOnline);
 
   /* controls and caption */
@@ -418,41 +470,59 @@
   Object.keys(CAPTIONS).forEach(function (md) { var p = el('p', 'sim-caption'); p.innerHTML = CAPTIONS[md]; capBox.appendChild(p); caps[md] = p; });
   root.appendChild(capBox);
 
+  /* the frame strips (16 small frames per candidate) are drawn the first time the typical reranker is shown,
+     so the default view builds no more than it shows */
+  function drawStrips() {
+    strips.forEach(function (fs, i) {
+      if (fs.firstChild) return;
+      for (var u = 1; u <= T; u++) { var mf = el('span', 'vc-mf'); mf.style.setProperty('--t', u - 1); mf.appendChild(scene(CANDS[i].kind, u)); fs.appendChild(mf); }
+    });
+  }
+
   /* ---------------- state and render ---------------- */
-  var mode = /[?&]cover=16\b/.test(search) ? '16' : '64';
-  var step = 1, playing = false, timer = null, typing = null;
+  var mode = /[?&]coverMode=typical\b/.test(search) ? 'typical' : 'vedje';
+  var step = 1, playing = false, timer = null, typing = null, jmTimer = null;
 
   function setMode(md) {
     mode = md;
-    root.classList.toggle('is-m1', MODES[md].m === 1);
+    var typ = md === 'typical';
+    if (typ) drawStrips();
+    root.classList.toggle('is-typical', typ);
     [].forEach.call(seg.querySelectorAll('button'), function (b) { b.setAttribute('aria-selected', b.getAttribute('data-mode') === md ? 'true' : 'false'); });
     Object.keys(caps).forEach(function (key) {
       var on = key === md;
       caps[key].classList.toggle('is-on', on);
       if (on) caps[key].removeAttribute('aria-hidden'); else caps[key].setAttribute('aria-hidden', 'true');
     });
+    lhScore.textContent = typ ? 'Typical' : 'VEDJE';
+    scores.forEach(function (s, i) { s.textContent = (typ ? CANDS[i].typ : CANDS[i].score).toFixed(2); });
     render(false);
   }
 
   function summary() {
-    var m = MODES[mode].m;
-    if (step <= T) return 'Step ' + step + ' of ' + N + '. Frame ' + step + ' of ' + T + ' is compressed into ' + m + (m === 1 ? ' token' : ' tokens') +
-      ' and stored as Z' + step + '. Stored per video: ' + kib(cacheBytes(step, m)) + '.';
-    if (step === S_QUERY) return 'Step ' + step + ' of ' + N + '. The query arrives, the first stage returns five candidates with their scores, and their caches are fetched.';
+    var typ = mode === 'typical', head = 'Step ' + step + ' of ' + N + '. ';
+    if (step <= T) return head + 'Frame ' + step + ' of ' + T + (typ ?
+      ' goes through the frozen visual encoder, which writes one first-stage embedding per video and no cache.' :
+      ' is compressed into ' + M + ' tokens and stored as Z' + step + '. Stored per video: ' + kib(cacheBytes(step)) + '.');
+    if (step === S_QUERY) return head + (typ ? 'The query arrives, and the first stage returns five candidates with their scores.' :
+      'The query arrives, the first stage returns five candidates with their scores, and their caches are fetched.');
     if (step < S_SORT) { var i = step - S_READ, cd = CANDS[i];
-      return 'Step ' + step + ' of ' + N + '. The joint encoder reads the query next to the cache of candidate ' + (i + 1) + ', ' +
+      if (typ) return head + 'The visual encoder encodes the frames of candidate ' + (i + 1) + ', ' + cd.label.toLowerCase() +
+        ', first-stage rank ' + cd.s1 + ', and the large joint model scores them with the query: ' + cd.typ.toFixed(2) +
+        '. Visual encoder calls at query time: ' + (i + 1) + '.';
+      return head + 'The joint encoder reads the query next to the cache of candidate ' + (i + 1) + ', ' +
         cd.label.toLowerCase() + ', first-stage rank ' + cd.s1 + '. With its first-stage score of ' + cd.prior.toFixed(2) +
         ', it scores ' + cd.score.toFixed(2) + '.'; }
-    return 'Step ' + step + ' of ' + N + '. The candidates are sorted by score, and the video where the person walks across the field ' +
-      'moves from first-stage rank 3 to rank 1.';
+    return head + 'The candidates are sorted by score, and the video where the person walks across the field ' +
+      'moves from first-stage rank 3 to rank 1.' + (typ ? ' The visual encoder ran once for each of the five candidates.' : '');
   }
 
   function render(animate) {
-    var m = MODES[mode].m, idx = Math.min(step, T), online = step > T;
+    var typ = mode === 'typical', idx = Math.min(step, T), online = step > T;
     var reading = step >= S_READ && step < S_SORT ? step - S_READ : -1, sorted = step >= S_SORT;
 
     /* index panel */
-    stIndex.textContent = online ? 'Cache complete' : 'Frame ' + step + ' of ' + T;
+    stIndex.textContent = online ? (typ ? 'Embedding stored' : 'Cache complete') : 'Frame ' + step + ' of ' + T;
     frames.forEach(function (f, i) {
       f.classList.toggle('is-done', i < idx || online);
       f.classList.toggle('is-now', !online && i === idx - 1);
@@ -464,17 +534,18 @@
     for (var c2 = 0; c2 < P; c2++) cells[c2].setAttribute('fill', col[c2]);
     outToks.forEach(function (o, j) { o.style.opacity = tokShade(MATCH, idx, j); });
     outLbl.textContent = 'Z' + idx;
-    arrTok.firstChild.textContent = m + (m === 1 ? ' token' : ' tokens');
+    embCells.forEach(function (c3, j) { c3.style.opacity = embShade(j, idx); });
+    /* the typical reranker writes no cache, so its slots stay empty */
     slots.forEach(function (s, i) {
-      var full = i < idx;
-      s.classList.toggle('is-full', full);
-      s.classList.toggle('is-now', !online && i === idx - 1);
-      s.classList.toggle('is-new', !!animate && !online && i === idx - 1);
+      var now = !typ && !online && i === idx - 1;
+      s.classList.toggle('is-full', !typ && i < idx);
+      s.classList.toggle('is-now', now);
+      s.classList.toggle('is-new', !!animate && now);
     });
     zl.forEach(function (z, i) { z.classList.toggle('is-now', !online && i === idx - 1); });
-    var bytes = cacheBytes(idx, m);
-    fill.style.width = (bytes / cacheBytes(T, 4) * 100) + '%';
-    meterVal.textContent = kib(bytes);
+    /* the meter: the cache on its 48 KiB scale, or the first-stage embedding alone (its width comes from cover.css) */
+    fill.style.width = typ ? '' : (cacheBytes(idx) / cacheBytes(T) * 100) + '%';
+    meterVal.textContent = typ ? 'Embedding only' : kib(cacheBytes(idx));
 
     /* online panel */
     pOnline.classList.toggle('is-wait', !online);
@@ -489,7 +560,14 @@
       } else qTyped.textContent = QUERY;
     }
     s1Box.classList.toggle('is-on', step === S_QUERY);
-    jeBox.classList.toggle('is-on', reading >= 0);
+    jeBox.classList.toggle('is-on', !typ && reading >= 0);
+    veBox.classList.toggle('is-on', typ && reading >= 0);
+    /* the large joint model scores each candidate once the visual encoder has gone over its frames */
+    clearTimeout(jmTimer);
+    jmBox.classList.toggle('is-on', typ && reading >= 0 && !animate);
+    if (typ && reading >= 0 && animate) jmTimer = setTimeout(function () { jmBox.classList.add('is-on'); }, 1800);
+    /* one visual encoder call per candidate read by the typical reranker; none for VEDJE */
+    callsNum.textContent = typ ? (sorted ? NC : reading + 1) : 0;
     rows.forEach(function (row, i) {
       var cd = CANDS[i];
       row.classList.toggle('is-reading', i === reading);
@@ -525,12 +603,18 @@
     function rowY(i) { var pos = parseFloat(rows[i].style.getPropertyValue('--pos')) || 0; return (lr.top - br.top) / k + pos * (rowH + gap) + rowH / 2; }
     function from(box) { var r = box.getBoundingClientRect(); return [(r.right - br.left) / k + 1, (r.top - br.top + r.height / 2) / k]; }
     function curve(a, y) { var mx = (a[0] + x1) / 2; return 'M' + a[0].toFixed(1) + ' ' + a[1].toFixed(1) + ' C' + mx.toFixed(1) + ' ' + a[1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + y.toFixed(1) + ' ' + x1.toFixed(1) + ' ' + y.toFixed(1); }
-    var a1 = from(s1Box), a2 = from(jeBox), phase = body.getAttribute('data-phase');
+    /* the typical reranker joins both of its steps to the candidate it reads: the visual encoder and the joint model */
+    var typ = mode === 'typical', a1 = from(s1Box), a2 = from(typ ? jmBox : jeBox), phase = body.getAttribute('data-phase');
     fan.forEach(function (p, i) { p.setAttribute('d', curve(a1, rowY(i))); });
     links.classList.toggle('show-s1', phase === 'first');
     var reading = step >= S_READ && step < S_SORT ? step - S_READ : -1;
     links.classList.toggle('show-je', reading >= 0);
-    if (reading >= 0) { var y = rowY(reading); jeLink.setAttribute('d', curve(a2, y)); jeDot.setAttribute('cx', x1.toFixed(1)); jeDot.setAttribute('cy', y.toFixed(1)); }
+    links.classList.toggle('show-ve', typ && reading >= 0);
+    if (reading >= 0) {
+      var y = rowY(reading);
+      jeLink.setAttribute('d', curve(a2, y)); jeDot.setAttribute('cx', x1.toFixed(1)); jeDot.setAttribute('cy', y.toFixed(1));
+      if (typ) veLink.setAttribute('d', curve(from(veBox), y));
+    }
   }
 
   function setStep(s, animate) {
@@ -542,7 +626,7 @@
   function dur(s) {
     if (s <= T) return 520;            // one frame per beat
     if (s === S_QUERY) return 1500;    // the query arrives and the first stage returns its candidates
-    if (s < S_SORT) return 1100;       // one candidate per beat
+    if (s < S_SORT) return mode === 'typical' ? 2400 : 1100;   // one candidate per beat; re-encoding takes longer
     return 3800;                       // hold the sorted list, then loop
   }
   function schedule() {
@@ -585,13 +669,13 @@
   else window.addEventListener('resize', drawLinks);
 
   /* wide screens (style.css, "The cover on wide screens"): zoom the 560px cover to fill its column, as far as
-     the window height allows; the caption (the last 80px of the 712px reserved height) may fall below the fold */
+     the window height allows; the caption (the last 80px of the 756px reserved height) may fall below the fold */
   var host = document.getElementById('heroDemo'), header = host && host.parentElement, fitQueued = false;
   function fit() {
     fitQueued = false;
     if (!host || !header) return;
     var beside = window.innerWidth >= 1440 && getComputedStyle(header).flexDirection === 'row';
-    var z = beside ? Math.min(host.clientWidth / 560, (window.innerHeight - host.getBoundingClientRect().top - window.scrollY - 16) / 632, 1.6) : 0;
+    var z = beside ? Math.min(host.clientWidth / 560, (window.innerHeight - host.getBoundingClientRect().top - window.scrollY - 16) / 676, 1.6) : 0;
     root.style.zoom = beside ? Math.max(1, z).toFixed(3) : '';
     drawLinks();
   }

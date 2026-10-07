@@ -22,14 +22,6 @@ def test_every_script_help_exits_0_on_cpu():
         assert out.decode().startswith("usage:"), name
 
 
-def test_paper_results_exist():
-    from vedje.paper import load_results
-    results = load_results()
-    for block in ("table_1b", "table_3", "table_4", "table_5", "table_6", "table_9", "table_12",
-                  "figure_1_table_22"):
-        assert results[block]["source"], block
-
-
 def test_hard_negatives_are_the_most_similar_wrong_videos():
     spec = importlib.util.spec_from_file_location("mine_hard_negatives", ROOT / "scripts" / "mine_hard_negatives.py")
     script = importlib.util.module_from_spec(spec)

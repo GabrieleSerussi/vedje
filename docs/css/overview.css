@@ -138,6 +138,12 @@
 .va-sym.is-sort { fill: var(--neutral-900); font-weight: 600; }
 .va-svg .va-rhov { fill: var(--va-gray); }
 
+/* Online reranking: the stored caches on the cards, the copy that flies into the input, and the load label */
+.va-stripbg { fill: var(--nav-bg); stroke: var(--neutral-300); stroke-width: 1; }
+.va-stripbg.is-on { stroke: var(--va-blue); stroke-width: 1.6; }
+.va-load { fill: var(--neutral-500); }
+.va-load.is-on { fill: var(--va-blue); }
+
 /* reduced motion: the card shows still frames (js/overview.js), so its highlights switch without transitions */
 @media (prefers-reduced-motion: reduce) {
   .vedje-anim *, .vedje-anim *::before, .vedje-anim *::after { transition: none !important; }

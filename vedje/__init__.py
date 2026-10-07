@@ -15,9 +15,9 @@ Modules:
     vedje.retrieval  two-stage evaluation, R@1, R@5 and R@10 in both directions
     vedje.data       MSR-VTT, MSVD, DiDeMo and ActivityNet loaders
     vedje.config     configuration loading
-    vedje.paper      the paper's reported numbers (artifacts/paper_results.json)
     vedje.inference  index your videos and search them with a trained checkpoint (VEDJE, Index)
-    vedje.cli        the vedje command: train, index, search
+    vedje.backbone   another frozen backbone: a Backbone class and prepare, which writes its features and config
+    vedje.cli        the vedje command: train, prepare, index, search
 """
 
 __version__ = "0.1.0"

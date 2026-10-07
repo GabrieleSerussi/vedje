@@ -26,10 +26,9 @@
 }
 .vedje-cover [hidden] { display: none !important; }
 
-/* ---------- top row: mode toggle and step counter ---------- */
+/* ---------- top row: pipeline toggle (VEDJE or a typical reranker) and step counter ---------- */
 .vedje-cover .sim-top { margin-bottom: 12px; }
 .vedje-cover .seg button[role="tab"] { letter-spacing: 0.1em; }
-.vedje-cover .vc-u { text-transform: none; letter-spacing: 0.04em; }
 .vedje-cover .seg .lbl-long { display: inline; }
 .vedje-cover .seg .lbl-short { display: none; }
 
@@ -51,7 +50,7 @@
 .vc-frame.is-done { opacity: 1; }
 .vc-frame.is-now { opacity: 1; box-shadow: 0 0 0 1.5px var(--nav-bg), 0 0 0 3px var(--vc-ink); }
 
-/* the pipeline: encoder, patch grid of the current frame, compressor, its tokens */
+/* the pipeline: encoder, patch grid of the current frame, compressor, its tokens (the typical reranker: one embedding) */
 .vc-pipe { display: flex; align-items: center; justify-content: center; margin: 10px 0 9px; }
 .vc-box {
   flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
@@ -74,11 +73,9 @@
 .vc-out-lbl { min-width: 3ch; font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--vc-blue); font-variant-numeric: tabular-nums; }
 .vc-pipe.is-idle .vc-mosaic, .vc-pipe.is-idle .vc-out { opacity: 0.75; }
 
-/* token groups: four tokens as two by two, or one token in the 16-token mode */
+/* token groups: four tokens as two by two */
 .vc-tok-group { display: grid; grid-template-columns: repeat(2, var(--vc-tok)); grid-auto-rows: var(--vc-tok); gap: 2px; place-content: center; }
 .vc-tok-group i { display: block; border-radius: 2px; background: var(--vc-blue); }
-.is-m1 .vc-tok-group { grid-template-columns: var(--vc-tok); }
-.is-m1 .vc-tok-group i:nth-child(n+2) { display: none; }
 
 /* the ordered cache Z1 to Z16 */
 .vc-slot { height: calc(2 * var(--vc-tok) + 10px); border: 1px dashed var(--neutral-300); border-radius: 4px; transition: background-color .25s, border-color .25s; }
@@ -88,11 +85,12 @@
 .vc-slot.is-now { border-color: var(--vc-blue); }
 .vc-slot.is-new i { animation: vc-drop .38s cubic-bezier(.3, .7, .3, 1) both; }
 @keyframes vc-drop { from { transform: translateY(-10px); opacity: 0; } }
-.vc-z { margin-top: 3px; }
+.vc-zbox { display: grid; grid-template-columns: minmax(0, 1fr); margin-top: 3px; }
+.vc-zbox > * { grid-area: 1 / 1; }
 .vc-z span { text-align: center; font-family: var(--font-mono); font-size: 10px; line-height: 1.2; color: var(--neutral-400); white-space: nowrap; }
 .vc-z span.is-now { color: var(--vc-blue); font-weight: 600; }
 
-/* storage meter: one scale (48 KiB) for both modes */
+/* storage meter: the cache on a 48 KiB scale (the typical reranker shows its first-stage embedding alone) */
 .vc-meter { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
 .vc-meter .eyebrow { flex: none; justify-content: flex-start; font-size: 10px; letter-spacing: 0.18em; line-height: 1.2; }
 .vc-meter-track { flex: 1 1 auto; height: 8px; border-radius: 4px; background: var(--series-track); overflow: hidden; }
@@ -160,7 +158,6 @@
 .vc-cs { display: flex; gap: 1px; }
 .vc-cs .vc-tok-group { grid-template-columns: repeat(2, var(--vc-mtok)); grid-auto-rows: var(--vc-mtok); gap: 1px; width: calc(2 * var(--vc-mtok) + 1px); height: calc(2 * var(--vc-mtok) + 1px); }
 .vc-cs .vc-tok-group i { border-radius: 0.5px; }
-.is-m1 .vc-cs .vc-tok-group { grid-template-columns: var(--vc-mtok); }
 .vc-prior { flex: none; margin-left: auto; padding: 2px 5px; border-radius: 4px; background: var(--surface-panel); font-size: 10px; line-height: 1.3; color: var(--neutral-600); font-variant-numeric: tabular-nums; white-space: nowrap; opacity: 0; visibility: hidden; transform: translateX(-5px); transition: opacity .3s, transform .3s, visibility .3s; }
 .vc-score { flex: 0 0 var(--vc-sw); text-align: right; font-family: var(--font-mono); font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--vc-blue); font-variant-numeric: tabular-nums; opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; }
 /* the first stage returns its candidates with their scores, so the grey scores show as soon as the query arrives */
@@ -172,6 +169,44 @@
 .vc-online.is-wait .vc-cand { background: var(--surface-panel); }
 .vc-online.is-wait .vc-rk, .vc-online.is-wait .vc-thumb, .vc-online.is-wait .vc-main { opacity: 0; visibility: hidden; transition-delay: 0s; }
 
+/* ---------- the typical reranker (.is-typical on the card): the same video, query and candidates ----------
+   Offline the encoder writes one first-stage embedding (grey, the colour of the first stage) and the cache slots stay
+   empty; online the visual encoder (ink, like the frozen encoder offline) and a large joint model run for each
+   candidate, whose frames light up while they are encoded. Its pieces are hidden in the VEDJE mode. */
+.vc-emb, .vc-pair, .vc-fs { display: none; }
+.is-typical .vc-comp, .is-typical .vc-arrow-tok, .is-typical .vc-out, .is-typical .vc-je, .is-typical .vc-cs { display: none; }
+.is-typical .vc-emb, .is-typical .vc-pair, .is-typical .vc-fs { display: flex; }
+.vc-emb { flex: none; align-items: center; gap: 7px; transition: opacity .3s; }
+.vc-emb-vec { display: flex; gap: 1px; }
+.vc-emb-vec i { display: block; width: 5px; height: var(--vc-tok); border-radius: 1px; background: var(--vc-gray); }
+.vc-emb-lbl { font-size: 11px; font-weight: 500; line-height: 1.2; color: var(--neutral-600); white-space: nowrap; }
+.vc-pipe.is-idle .vc-emb { opacity: 0.75; }
+.vc-nocache { visibility: hidden; font-size: 10px; line-height: 1.2; color: var(--neutral-500); text-align: center; }
+.vc-nocache .lbl-short { display: none; }
+.is-typical .vc-zbox .vc-z, .is-typical .vc-zbox .vc-z span { visibility: hidden; }
+.is-typical .vc-nocache { visibility: visible; }
+/* the meter holds the first-stage embedding alone, drawn short and without a size */
+.is-typical .vc-meter-fill { width: 12px; background: var(--vc-gray); }
+.is-typical .vc-meter-val { font-family: var(--font-body); font-size: 11px; line-height: 14.4px; color: var(--neutral-600); }
+/* "Typical" is wider than "VEDJE", so the first-stage label moves left just enough to keep a gap */
+.is-typical .vc-lh-s { right: max(calc(var(--vc-pr) + var(--vc-sw) + var(--vc-cg) + 6px), calc(var(--vc-pr) + 47px)); }
+/* the two steps that run per candidate sit closer together than the other blocks */
+.vc-pair { flex-direction: column; gap: 3px; }
+.vc-pair .vc-stage { min-height: 24px; padding: 4px 8px; }
+.vc-ve.is-on { background: var(--vc-ink); color: #fff; }
+.vc-jm.is-on { background: var(--vc-blue); color: #fff; }
+.vc-link-ve { stroke: var(--vc-ink); stroke-width: 1.2; }
+.vc-links.show-ve .vc-link-ve { opacity: 1; }
+/* a candidate's frames: dim until its encoder call, lit from left to right while it runs, then kept lit */
+.vc-fs { gap: 1px; border-radius: 1.5px; transition: box-shadow .25s; }
+.vc-mf { flex: none; width: calc(2 * var(--vc-mtok) + 1px); height: calc(2 * var(--vc-mtok) + 1px); border-radius: 1px; overflow: hidden; opacity: 0.35; transition: opacity .2s; }
+.vc-mf svg { display: block; width: 100%; height: 100%; }
+.vc-cand.is-reading .vc-mf { opacity: 1; transition-delay: calc(var(--t, 0) * 110ms); }
+/* typical reranker: the visual encoder runs over the frames, then the large joint model scores the pair */
+.is-typical .vc-cand.is-reading .vc-score { transition-delay: 2s; }
+.vc-cand.is-scored .vc-mf { opacity: 1; }
+.vc-cand.is-reading .vc-fs { box-shadow: 0 0 0 1px var(--nav-bg), 0 0 0 2px var(--vc-ink); }
+
 /* ---------- controls and captions ---------- */
 .vedje-cover .sim-controls { margin-top: 2px; }
 /* both captions sit in one grid cell, so the card keeps one height in either mode */
@@ -179,6 +214,27 @@
 .vc-captions > .sim-caption { grid-area: 1 / 1; visibility: hidden; }
 .vc-captions > .sim-caption.is-on { visibility: visible; }
 .vc-fine { font-size: 0.95em; }
+
+/* ---------- per query: both pipelines side by side, the shown one in full colour ---------- */
+.vc-costs { display: grid; grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr); column-gap: 12px; row-gap: 5px; align-items: center; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--divider); }
+.vc-costs-t { justify-content: flex-start; font-size: 10px; letter-spacing: 0.18em; line-height: 1.2; }
+.vc-costs-h { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; line-height: 1.2; text-transform: uppercase; }
+.vc-cost-l { font-size: 10.5px; line-height: 1.3; color: var(--neutral-600); white-space: nowrap; }
+.vc-cost { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.vc-cost-track { flex: 1 1 auto; height: 6px; border-radius: 3px; background: var(--series-track); overflow: hidden; }
+.vc-cost-track i { display: block; height: 100%; border-radius: 3px; }
+.vc-cost-v { flex: none; min-width: 4.5ch; text-align: right; font-family: var(--font-mono); font-size: 11px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.vc-costs .is-vedje { color: var(--vc-blue); }
+.vc-costs .is-typ { color: var(--vc-ink); }
+.vc-cost.is-vedje .vc-cost-track i { background: var(--vc-blue); }
+.vc-cost.is-typ .vc-cost-track i { background: var(--vc-ink); }
+.vc-costs .is-vedje, .vc-costs .is-typ { transition: opacity .3s; }
+.vedje-cover:not(.is-typical) .vc-costs .is-typ, .vedje-cover.is-typical .vc-costs .is-vedje { opacity: 0.45; }
+@container vcover (max-width: 429px) {
+  .vc-costs { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 4px; }
+  .vc-costs-t, .vc-cost-l { grid-column: 1 / -1; }
+  .vc-cost-l { margin-top: 2px; }
+}
 
 /* ?static=1 and reduced motion: no transitions or animations inside the card */
 .vedje-cover.vc-static *, .vedje-cover.vc-static *::before, .vedje-cover.vc-static *::after { transition: none !important; animation: none !important; }
@@ -209,7 +265,7 @@
   .vc-main { gap: 3px; }
   .vc-lh-c { left: 9px; }
   .vc-in { gap: 4px; }
-  .vc-cs { gap: 1.5px; }
+  .vc-cs, .vc-fs { gap: 1.5px; }
   .vc-qtext { font-size: 12.5px; }
   .vc-score { font-size: 12.5px; }
 }
@@ -240,6 +296,11 @@
   .vc-qtag { flex: none; }
   .vc-qtext { flex: 1 1 auto; }
   .vc-calls { grid-column: 1 / -1; }
+  /* the typical reranker: first stage, visual encoder and joint model side by side; a label that wraps to two
+     lines keeps the 28px height of a one-line pill */
+  .is-typical .vc-side { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .is-typical .vc-pair { display: contents; }
+  .is-typical .vc-side .vc-stage { min-height: 28px; padding: 2px 4px; line-height: 12px; }
 }
 
 /* ---------- phones: the pipeline on two rows, candidate rows on two lines (the label below), short toggle labels ---------- */
@@ -271,6 +332,12 @@
   .vc-in { display: none; }
   .vc-lh-c { left: 7px; }
   .vc-prior { margin-left: 0; padding: 2px 5px; }
+  /* the typical reranker: a shorter empty-cache line, and the embedding label on two lines so the pipeline keeps two rows */
+  .vc-nocache .lbl-long { display: none; }
+  .vc-nocache .lbl-short { display: inline; }
+  .vc-emb-lbl { width: min-content; white-space: normal; }
+  /* the frames are hidden on phones, so the thumbnail of the candidate being encoded carries the encoder's ring */
+  .is-typical .vc-cand.is-reading .vc-thumb { box-shadow: 0 0 0 1px var(--nav-bg), 0 0 0 2px var(--vc-ink); }
 }
 @container vcover (max-width: 269px) {
   .vc-panel { --vc-tok: 4px; }
@@ -278,14 +345,14 @@
 
 /* ---------- reserved height: the card keeps its built height while the script loads ----------
    Each value sits just under the smallest built height of its range in both versions (measured at
-   5px steps with the 24px gutter of style.css under 900px). The classic version shows a 720px card
-   below the title from 1061px; make_classic.py gives its .article-shell the id "top". */
-#vedjeCover { min-height: 672px; }
-.article-shell#top #vedjeCover { min-height: 712px; }
-@media (max-width: 1060px) { #vedjeCover, .article-shell#top #vedjeCover { min-height: 706px; } }
-@media (max-width: 900px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 720px; } }
-@media (max-width: 720px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 690px; } }
-@media (max-width: 599px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 789px; } }
-@media (max-width: 479px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 962px; } }
-@media (max-width: 399px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 996px; } }
-@media (max-width: 359px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 1042px; } }
+   5px steps with the 24px gutter of style.css under 900px). From 1061px both versions show the card beside the
+   title, the classic one in its own type; make_classic.py gives its .article-shell the id "top". */
+#vedjeCover { min-height: 756px; }
+.article-shell#top #vedjeCover { min-height: 764px; }
+@media (max-width: 1060px) { #vedjeCover, .article-shell#top #vedjeCover { min-height: 774px; } }
+@media (max-width: 900px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 770px; } }
+@media (max-width: 720px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 760px; } }
+@media (max-width: 599px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 858px; } }
+@media (max-width: 479px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 1098px; } }
+@media (max-width: 399px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 1116px; } }
+@media (max-width: 359px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 1164px; } }

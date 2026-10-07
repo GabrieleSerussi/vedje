@@ -102,7 +102,7 @@
 
     <!-- The cover: a schematic of indexing once and reranking every query (js/cover.js builds it) -->
     <div class="article-hero-demo" id="heroDemo">
-      <div class="sim-card vedje-cover" id="vedjeCover" aria-label="Interactive schematic of VEDJE: each video is indexed once into a small ordered cache, and a joint encoder reranks the first-stage candidates of a query from their caches"></div>
+      <div class="sim-card vedje-cover" id="vedjeCover" aria-label="Interactive schematic of VEDJE next to a typical reranker: VEDJE indexes each video once into a small ordered cache and reranks the first-stage candidates of a query from their caches, while a typical reranker encodes every candidate again at query time"></div>
     </div>
   </header>
 </div>
@@ -154,13 +154,14 @@
       <span class="eyebrow eyebrow-outline section-eyebrow">01 · Results</span>
       <h2>On MSR-VTT, VEDJE matches the text-to-video R@1 of the LamRA reproduction with <span class="accent">about 49 times fewer online parameters</span>.</h2>
       <p class="section-ref">Sections 4.1 to 4.3 of the paper, with Figure 1, Tables 1, 3, 9, 12 and 22, and Appendices A.6, A.8 and B.</p>
-      <p>Online parameters count the text encoding and scoring that run for each query. With a fine-tuned VideoCLIP-XL first stage, VEDJE raises text-to-video R@1 from 56.2 to 59.8 with about 157M online parameters. The LamRA reproduction reaches 59.7 with a 7.6B-parameter decoder alone, about 49 times as many.</p>
+      <p>Online parameters count the text encoding and scoring that run for each query. With a fine-tuned <a class="ref" href="https://aclanthology.org/2024.emnlp-main.898/" target="_blank" rel="noopener" title="Wang et al., EMNLP 2024">VideoCLIP-XL</a> first stage, VEDJE raises text-to-video R@1 from 56.2 to 59.8 with about 157M online parameters. The <a class="ref" href="https://arxiv.org/abs/2412.01720" target="_blank" rel="noopener" title="Liu et al., CVPR 2025">LamRA</a> reproduction reaches 59.7 with a 7.6B-parameter decoder alone, about 49 times as many.</p>
       <div class="chart-card scatter" id="frontierCard">
         <div class="chart-head">
           <div class="chart-title">Accuracy against online parameters<small>Figure 1 and Table 22 · MSR-VTT text-to-video R@1 · log scale</small></div>
         </div>
         <div class="frontier-plot" id="chartFrontier"></div>
         <p class="chart-note" id="frontierNote"></p>
+        <p class="chart-note chart-papers">Papers: <a class="ref" href="https://arxiv.org/abs/2104.08860" target="_blank" rel="noopener" title="Luo et al., Neurocomputing 2022">CLIP4Clip</a>&nbsp;· <a class="ref" href="https://arxiv.org/abs/2207.07285" target="_blank" rel="noopener" title="Ma et al., ACM MM 2022">X-CLIP</a>&nbsp;· <a class="ref" href="https://arxiv.org/abs/2401.00701" target="_blank" rel="noopener" title="Tian et al., AAAI 2024">EERCF</a>&nbsp;· <a class="ref" href="https://arxiv.org/abs/2503.19009" target="_blank" rel="noopener" title="Reddy et al., CVPR 2025">Video-ColBERT</a>&nbsp;· <a class="ref" href="https://arxiv.org/abs/2412.01720" target="_blank" rel="noopener" title="Liu et al., CVPR 2025">LamRA</a>&nbsp;· <a class="ref" href="https://aclanthology.org/2025.findings-emnlp.869/" target="_blank" rel="noopener" title="Lee et al., Findings of EMNLP 2025">CaRe-DPO</a></p>
       </div>
 
       <h3>VEDJE improves R@1 over each matched first stage on MSR-VTT, in both directions.</h3>
@@ -177,20 +178,22 @@
         </div>
         <div class="gain-bars" id="chartMatched"></div>
         <p class="chart-note" id="matchedNote"></p>
+        <p class="chart-note chart-papers">Papers: <a class="ref" href="https://aclanthology.org/2024.emnlp-main.898/" target="_blank" rel="noopener" title="Wang et al., EMNLP 2024">VideoCLIP-XL</a>&nbsp;· <a class="ref" href="https://proceedings.mlr.press/v235/zhao24f.html" target="_blank" rel="noopener" title="Zhao et al., ICML 2024">VideoPrism</a>&nbsp;· <a class="ref" href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/57bc0a850255e2041341bf74c7e2b9fa-Abstract-Conference.html" target="_blank" rel="noopener" title="Bolya et al., NeurIPS 2025">PE-Core-B</a></p>
       </div>
 
       <h3>Text-to-video R@1 also rises on MSVD, DiDeMo and ActivityNet.</h3>
-      <p>With the zero-shot VideoCLIP-XL first stage, text-to-video R@1 rises on each benchmark. The largest gain is on DiDeMo, from 47.7 to 56.6.</p>
+      <p>With the zero-shot VideoCLIP-XL first stage, text-to-video R@1 rises on each benchmark. The largest gain is on <a class="ref" href="https://arxiv.org/abs/1708.01641" target="_blank" rel="noopener" title="Hendricks et al., ICCV 2017">DiDeMo</a>, from 47.7 to 56.6.</p>
       <div class="chart-card" id="datasetsCard">
         <div class="chart-head">
           <div class="chart-title">Text-to-video R@1 gain on four benchmarks<small>Table 12 · zero-shot VideoCLIP-XL first stage · R@1 points</small></div>
         </div>
         <div class="gain-bars" id="chartDatasets"></div>
         <p class="chart-note" id="datasetsNote"></p>
+        <p class="chart-note chart-papers">Papers: <a class="ref" href="https://openaccess.thecvf.com/content_cvpr_2016/html/Xu_MSR-VTT_A_Large_CVPR_2016_paper.html" target="_blank" rel="noopener" title="Xu et al., CVPR 2016">MSR-VTT</a>&nbsp;· <a class="ref" href="https://aclanthology.org/P11-1020/" target="_blank" rel="noopener" title="Chen and Dolan, ACL 2011">MSVD</a>&nbsp;· <a class="ref" href="https://arxiv.org/abs/1708.01641" target="_blank" rel="noopener" title="Hendricks et al., ICCV 2017">DiDeMo</a>&nbsp;· <a class="ref" href="https://arxiv.org/abs/1705.00754" target="_blank" rel="noopener" title="Krishna et al., ICCV 2017">ActivityNet</a></p>
       </div>
 
       <h3>Each video is stored once, in 48&nbsp;KiB.</h3>
-      <p>The default cache keeps four tokens per sampled frame and is 128.5 times smaller than the frame-and-patch features of the same backbone. In the VideoPrism configuration on MSR-VTT, one token per frame shrinks the cache fourfold to 12&nbsp;KiB, and text-to-video R@1 stays within 0.2 points.</p>
+      <p>The default cache keeps four tokens per sampled frame and is 128.5 times smaller than the frame-and-patch features of the same backbone. In the <a class="ref" href="https://proceedings.mlr.press/v235/zhao24f.html" target="_blank" rel="noopener" title="Zhao et al., ICML 2024">VideoPrism</a> configuration on <a class="ref" href="https://openaccess.thecvf.com/content_cvpr_2016/html/Xu_MSR-VTT_A_Large_CVPR_2016_paper.html" target="_blank" rel="noopener" title="Xu et al., CVPR 2016">MSR-VTT</a>, one token per frame shrinks the cache fourfold to 12&nbsp;KiB, and text-to-video R@1 stays within 0.2 points.</p>
       <div class="chart-card" id="storageCard">
         <div class="chart-head">
           <div class="chart-title">Visual storage per video<small>Tables 3 and 9 · VideoPrism features · log scale</small></div>
@@ -358,6 +361,7 @@ c-1 5-5 9-11 9h-2L532 67 19 159h-2c-5 0-9-4-11-9l-5-22c-1-6 2-12 8-13z"/></svg><
         </div>
         <div class="gain-bars" id="chartScorer"></div>
         <p class="chart-note" id="scorerNote"></p>
+        <p class="chart-note chart-papers">Papers: <a class="ref" href="https://arxiv.org/abs/2004.12832" target="_blank" rel="noopener" title="Khattab and Zaharia, SIGIR 2020">MaxSim</a></p>
       </div>
 
       <h3 class="deep">With caches in host memory, a complete query takes under 11&nbsp;ms with 200 candidates, and under 7&nbsp;ms with the 12&nbsp;KiB cache.</h3>
@@ -369,7 +373,6 @@ c-1 5-5 9-11 9h-2L532 67 19 159h-2c-5 0-9-4-11-9l-5-22c-1-6 2-12 8-13z"/></svg><
         <div class="latency-plot" id="chartLatency"></div>
         <p class="chart-note" id="latencyNote"></p>
       </div>
-      <a href="https://github.com/GabrieleSerussi/vedje" class="article-closing-cta" target="_blank" rel="noopener">Get the code</a>
     </div>
 
   </div>
