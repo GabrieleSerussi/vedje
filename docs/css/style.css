@@ -1212,6 +1212,28 @@ button { font: inherit; color: inherit; }
 }
 
 /* ============================================================
+   The cover on wide screens (Decart version)
+   From 1440px the cover keeps the layout it has at 560px and is zoomed to fill its column: js/cover.js
+   sets the zoom from the column width and the window height (up to 1.6). The column takes what the
+   text column (at most 754px) leaves, and the page grows with the screen up to 1840px. Windows at
+   least 980px tall have room for a 660px cover, so the column keeps at least 660px there (the text
+   column keeps 620px, enough for the title and the four logos in one row); the zoom in that block is
+   the value before the script runs. theme-classic.css resets these rules (the cover stacks there).
+   ============================================================ */
+@media (min-width: 1440px) {
+  .article-header-main { flex: 0 1 754px; }
+  .article-hero-demo { flex: 1 1 0; min-width: 560px; max-width: none; }
+  #vedjeCover { width: 560px; margin-left: auto; }
+}
+@media (min-width: 1440px) and (min-height: 980px) {
+  .article-hero-demo { min-width: 660px; }
+  #vedjeCover { zoom: 1.178571; }
+}
+@media (min-width: 1700px) {
+  :root { --page-w: min(85vw, 1840px); }
+}
+
+/* ============================================================
    Institution logos and button rows (both versions)
    The logo row (four institutions) sits between the affiliations and the paper links (three buttons),
    inside .header-actions. Container queries follow that column, not the viewport: the text column

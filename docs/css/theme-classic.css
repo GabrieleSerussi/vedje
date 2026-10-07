@@ -51,6 +51,9 @@ body { background-image: none; background-color: #ffffff; font-variation-setting
 .decart-chip { background: transparent; color: var(--accent-primary); border: 1px solid rgba(29,78,216,0.45); }
 .decart-chip img { filter: none; opacity: 0.9; }
 .article-hero-demo { flex: none; width: 100%; max-width: 720px; margin-top: 0; text-align: left; }
+.article-header-main { flex: 1 1 auto; }
+.article-hero-demo { min-width: 0; }
+#vedjeCover { width: auto; margin-left: 0; zoom: 1; }
 .sim-card { background: #f4f5f7; border-radius: 24px; border: 1px solid var(--divider); }
 .sim-prompt, .sim-canvas, .sim-sri { background: #ffffff; border: 1px solid rgba(0,0,0,0.06); }
 .seg { background: #ffffff; border: 1px solid var(--divider); }

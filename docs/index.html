@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval | Project page</title>
-  <meta name="description" content="VEDJE moves video encoding offline and keeps joint matching online. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.">
+  <meta name="description" content="VEDJE moves video encoding offline and keeps joint matching online. A 33M-parameter joint encoder reranks the candidates from a small cache written once per video.">
   <meta name="keywords" content="video retrieval, text-video retrieval, reranking, joint encoder, cross-encoder, video cache, compression, MSR-VTT, VEDJE, Decart, Ben-Gurion University, INSIGHT Lab">
   <meta name="author" content="Shahaf Wagner, Gabriele Serussi, Dan Ben Ami, Tomer Galanti, Chaim Baskin">
   <meta property="og:site_name" content="VEDJE">
   <meta property="og:title" content="VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval">
-  <meta property="og:description" content="VEDJE moves video encoding offline and keeps joint matching online. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.">
+  <meta property="og:description" content="VEDJE moves video encoding offline and keeps joint matching online. A 33M-parameter joint encoder reranks the candidates from a small cache written once per video.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://gabrieleserussi.github.io/vedje/">
   <link rel="canonical" href="https://gabrieleserussi.github.io/vedje/">
@@ -54,10 +54,10 @@
         <span class="article-date js-venue">Preprint · 2026</span>
       </div>
       <h1 class="article-title">VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval</h1>
-      <p class="article-dek">VEDJE moves video encoding offline and keeps joint matching online. Each video is compressed once into a small ordered cache, and a 33M-parameter joint encoder reranks the first-stage candidates from their caches.</p>
+      <p class="article-dek">VEDJE moves video encoding offline and keeps joint matching online. A 33M-parameter joint encoder reranks the candidates from a small cache written once per video.</p>
       <ul class="value-points" aria-label="What the paper delivers">
         <li><span class="vp-label">Result</span><span class="vp-text">On MSR-VTT, VEDJE improves R@1 over each matched first stage by 3.6 to 7.2 points, across both retrieval directions. With a fine-tuned VideoCLIP-XL first stage, it matches the LamRA reproduction in text-to-video R@1 with about 49 times fewer online parameters.</span></li>
-        <li><span class="vp-label">Why</span><span class="vp-text">A video's cache is written before its queries are known, so it must keep evidence for different actions and moments. VEDJE keeps a separate token group for each sampled frame.</span></li>
+        <li><span class="vp-label">Why</span><span class="vp-text">Each cache is written before any query arrives, so it must hold evidence for every action and moment a query might describe. VEDJE does this by keeping a separate token group for each sampled frame.</span></li>
         <li><span class="vp-label">Storage</span><span class="vp-text">The default cache takes 48&nbsp;KiB per video, 128.5 times smaller than the frame-and-patch features. In the VideoPrism configuration on MSR-VTT, a fourfold smaller cache keeps text-to-video R@1 within 0.2 points of it.</span></li>
       </ul>
 
@@ -226,7 +226,7 @@
         <div class="tool-card-body">
           <span class="eyebrow eyebrow-badge">Open source</span>
           <h4>Rerank your own collection.</h4>
-          <p>Clone the repository, train VEDJE with one command, then index your videos once and search them with text.</p>
+          <p>Clone the repository and train VEDJE with one command. Two more commands, or a few lines of Python, index your videos once and search them with text.</p>
           <a href="https://github.com/GabrieleSerussi/vedje" class="tool-card-cta btn-pill" target="_blank" rel="noopener">
             <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
             Open on GitHub
@@ -360,8 +360,8 @@ c-1 5-5 9-11 9h-2L532 67 19 159h-2c-5 0-9-4-11-9l-5-22c-1-6 2-12 8-13z"/></svg><
         <p class="chart-note" id="scorerNote"></p>
       </div>
 
-      <h3 class="deep">With caches in host memory, a complete query takes under 6&nbsp;ms with 20 candidates.</h3>
-      <p class="deep">Both cache sizes cost about the same at 20 candidates, since text encoding and search are shared. With more candidates, the smaller cache is faster: at 100 candidates its latency is 19% lower.</p>
+      <h3 class="deep">With caches in host memory, a complete query takes under 11&nbsp;ms with 200 candidates, and under 7&nbsp;ms with the 12&nbsp;KiB cache.</h3>
+      <p class="deep">Both cache sizes cost about the same at 20 candidates, since text encoding and search are shared. With more candidates, the smaller cache is faster: at 200 candidates its latency is 33% lower.</p>
       <div class="deep chart-card" id="latencyCard">
         <div class="chart-head">
           <div class="chart-title">Complete-query latency against the number of candidates<small>Table 6 · MSR-VTT text to video · VideoPrism first stage · candidates on a log scale</small></div>
@@ -406,7 +406,7 @@ c-1 5-5 9-11 9h-2L532 67 19 159h-2c-5 0-9-4-11-9l-5-22c-1-6 2-12 8-13z"/></svg><
 }</pre>
   </div>
   <div class="contact-list reveal">
-    <a href="mailto:chaimbaskin@bgu.ac.il">Contact: Chaim Baskin · chaimbaskin@bgu.ac.il</a>
+    <a href="mailto:serussig@post.bgu.ac.il">Contact: Gabriele Serussi · serussig@post.bgu.ac.il</a>
   </div>
 </section>
 
@@ -419,7 +419,7 @@ c-1 5-5 9-11 9h-2L532 67 19 159h-2c-5 0-9-4-11-9l-5-22c-1-6 2-12 8-13z"/></svg><
       <a href="https://github.com/GabrieleSerussi/vedje" target="_blank" rel="noopener">Code</a>
       <a class="js-colab" href="https://colab.research.google.com/github/GabrieleSerussi/vedje/blob/main/colab/vedje_tour.ipynb" target="_blank" rel="noopener">Colab notebook</a>
       <a href="#bibtex">BibTeX</a>
-      <a href="mailto:chaimbaskin@bgu.ac.il">Contact</a>
+      <a href="mailto:serussig@post.bgu.ac.il">Contact</a>
     </div>
   </div>
   <div class="site-footer-note">

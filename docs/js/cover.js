@@ -516,12 +516,14 @@
     var beside = sr.right <= lr.left + 1 && br.width > 0;
     links.classList.toggle('is-off', !beside);
     if (!beside) return;
-    links.setAttribute('width', Math.round(br.width)); links.setAttribute('height', Math.round(br.height));
-    links.setAttribute('viewBox', '0 0 ' + Math.round(br.width) + ' ' + Math.round(br.height));
+    /* on wide screens the cover is zoomed: client rects are in screen pixels, the lines are drawn in the cover's own */
+    var k = br.width / (body.offsetWidth || br.width), bw = Math.round(br.width / k), bh = Math.round(br.height / k);
+    links.setAttribute('width', bw); links.setAttribute('height', bh);
+    links.setAttribute('viewBox', '0 0 ' + bw + ' ' + bh);
     var cs = getComputedStyle(list), rowH = parseFloat(cs.getPropertyValue('--vc-row')) || 28, gap = parseFloat(cs.getPropertyValue('--vc-gap')) || 5;
-    var x1 = lr.left - br.left - 3;
-    function rowY(i) { var pos = parseFloat(rows[i].style.getPropertyValue('--pos')) || 0; return lr.top - br.top + pos * (rowH + gap) + rowH / 2; }
-    function from(box) { var r = box.getBoundingClientRect(); return [r.right - br.left + 1, r.top - br.top + r.height / 2]; }
+    var x1 = (lr.left - br.left) / k - 3;
+    function rowY(i) { var pos = parseFloat(rows[i].style.getPropertyValue('--pos')) || 0; return (lr.top - br.top) / k + pos * (rowH + gap) + rowH / 2; }
+    function from(box) { var r = box.getBoundingClientRect(); return [(r.right - br.left) / k + 1, (r.top - br.top + r.height / 2) / k]; }
     function curve(a, y) { var mx = (a[0] + x1) / 2; return 'M' + a[0].toFixed(1) + ' ' + a[1].toFixed(1) + ' C' + mx.toFixed(1) + ' ' + a[1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + y.toFixed(1) + ' ' + x1.toFixed(1) + ' ' + y.toFixed(1); }
     var a1 = from(s1Box), a2 = from(jeBox), phase = body.getAttribute('data-phase');
     fan.forEach(function (p, i) { p.setAttribute('d', curve(a1, rowY(i))); });
@@ -581,6 +583,20 @@
   }
   if ('ResizeObserver' in window) new ResizeObserver(function () { drawLinks(); }).observe(root);
   else window.addEventListener('resize', drawLinks);
+
+  /* wide screens (style.css, "The cover on wide screens"): zoom the 560px cover to fill its column, as far as
+     the window height allows; the caption (the last 80px of the 712px reserved height) may fall below the fold */
+  var host = document.getElementById('heroDemo'), header = host && host.parentElement, fitQueued = false;
+  function fit() {
+    fitQueued = false;
+    if (!host || !header) return;
+    var beside = window.innerWidth >= 1440 && getComputedStyle(header).flexDirection === 'row';
+    var z = beside ? Math.min(host.clientWidth / 560, (window.innerHeight - host.getBoundingClientRect().top - window.scrollY - 16) / 632, 1.6) : 0;
+    root.style.zoom = beside ? Math.max(1, z).toFixed(3) : '';
+    drawLinks();
+  }
+  window.addEventListener('resize', function () { if (!fitQueued) { fitQueued = true; requestAnimationFrame(fit); } });
+  fit();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
 
   /* ---------------- start ---------------- */
