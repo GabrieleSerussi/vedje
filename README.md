@@ -104,11 +104,11 @@ Offline, a frozen backbone encodes each video once, and a shared compressor writ
 
 ## Results
 
-- VEDJE reaches 59.8 MSR-VTT text-to-video R@1 with about 157M online parameters, using a fine-tuned VideoCLIP-XL first stage. The LamRA reproduction reaches 59.7 with a 7.6B base decoder, about 49 times that count (Figure 1, Table 22 and Appendix B).
-- VEDJE improves R@1 over each matched first stage on MSR-VTT by 3.6 to 7.2 points, in both directions (Table 1b). The first stages are VideoPrism, PE-Core-B and VideoCLIP-XL, zero-shot and fine-tuned.
-- With the zero-shot VideoCLIP-XL first stage, VEDJE improves text-to-video R@1 by 4.9 to 8.9 points on MSR-VTT, MSVD, DiDeMo and ActivityNet (Table 12).
-- The default cache stores 48 KiB per video, 128.5 times less than the frame-and-patch features of the same backbone (Section 4.3 and Table 9).
-- In the VideoPrism configuration on MSR-VTT, the 12 KiB cache keeps text-to-video R@1 within 0.2 points of the 48 KiB cache (Table 3).
+- VEDJE reaches **59.8 MSR-VTT text-to-video R@1 with about 157M online parameters**, using a fine-tuned VideoCLIP-XL first stage. The LamRA reproduction reaches 59.7 with a 7.6B base decoder, **about 49 times that count** (Figure 1, Table 22 and Appendix B).
+- VEDJE improves R@1 over each matched first stage on MSR-VTT by **3.6 to 7.2 points, in both directions** (Table 1b). The first stages are VideoPrism, PE-Core-B and VideoCLIP-XL, zero-shot and fine-tuned.
+- With the zero-shot VideoCLIP-XL first stage, VEDJE improves text-to-video R@1 by **4.9 to 8.9 points on MSR-VTT, MSVD, DiDeMo and ActivityNet** (Table 12).
+- The default cache stores **48 KiB per video, 128.5 times less** than the frame-and-patch features of the same backbone (Section 4.3 and Table 9).
+- In the VideoPrism configuration on MSR-VTT, the **12 KiB cache keeps text-to-video R@1 within 0.2 points** of the 48 KiB cache (Table 3).
 
 ## Repository layout
 
