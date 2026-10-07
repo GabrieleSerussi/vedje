@@ -1,0 +1,62 @@
+# VEDJE-VCLIP on msrvtt. Replace ./data_root/... with your local paths.
+
+# Backbone (frozen) and frame-local cache: T frames x M queries = 64 tokens
+vision_encoder: "vcxl"
+num_frames: 16
+num_queries_per_frame: 4
+num_attention_heads: 8
+num_adapter_layers: 2
+
+# Joint reranker + residual stage-1 prior
+language_model_path: "microsoft/MiniLM-L12-H384-uncased"
+clip_injection: "post_only"
+vtm_temperature: 1.0
+vtc_logit_scale: 20.0
+
+# Losses: L = L_vtm + L_vtc + L_mlm + L_delta (equal weights)
+loss_weight_vtm: 1.0
+loss_weight_vtc: 1.0
+loss_weight_mlm: 1.0
+loss_weight_delta: 1.0
+delta_horizons: [3]
+delta_num_layers: 2
+delta_num_heads: 8
+
+# Optimization (AdamW, 400 warmup steps, per-epoch step decay 0.9, effective batch 64)
+init_lr: 3.0e-4
+warmup_lr: 1.0e-6
+min_lr: 1.0e-6
+lr_decay_rate: 0.9
+weight_decay: 0.02
+warmup_steps: 400
+max_epoch: 4
+batch_size: 16
+gradient_accumulation_steps: 4
+max_grad_norm: 1.0
+temp_checkpoint_steps: 200
+
+# Stage-1 candidates, hard negatives, and evaluation (K=20)
+num_hard_negatives: 49
+num_negatives_per_sample: 49
+hard_neg_pool_size: 50
+# The first stage is VideoCLIP-XL: its embeddings of the training set give the prior,
+# the hard negatives and the contrastive targets (Table 7)
+lvt_embeds_path: "./data_root/msrvtt/vclip_stage1_train_embeds.pt"
+lvt_test_features_path: "./data_root/msrvtt/vclip_stage1_test_features.pt"
+k: 20
+eval_batch_size: 16
+
+# Data
+use_precomputed_features: true
+precomputed_features_dir: "./data_root/msrvtt/vclip_features_16f"
+msrvtt_precomputed_features_dir: "./data_root/msrvtt/vclip_features_16f"
+hard_negatives_path: "./data_root/msrvtt/hard_negatives_text2vid_top50_vclip.json"
+test_set: "msrvtt"
+train_dataset: "msrvtt"
+msrvtt_videos: "./data_root/msrvtt/videos/"
+msrvtt_train_ann: "./data_root/msrvtt/msrvtt_train_9k_1ka.json"
+msrvtt_test_ann: "./data_root/msrvtt/msrvtt_test_1ka_standard.json"
+
+experiment:
+  backend: "none"
+  run_name: "vedje_vclip_msrvtt"

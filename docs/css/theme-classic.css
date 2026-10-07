@@ -1,0 +1,160 @@
+/* ============================================================
+   Classic theme: a traditional project-page look on the same layout.
+   Loaded after style.css and hero.css. Swaps the Decart tokens (fonts,
+   paper texture, navy and blue accents, black footer) for a neutral
+   academic palette with Inter and Source Serif 4 from Google Fonts.
+   ============================================================ */
+:root {
+  --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --w-mix-regular: 500;
+  --w-mix-medium: 600;
+  --brand-blue: #1d4ed8;
+  --brand-navy: #14213d;
+  --accent-primary: #1d4ed8;
+  --accent-deep: #14213d;
+  --accent-article: #1d4ed8;
+  --series-diffusion: #1d4ed8;
+  --nav-bg: #ffffff;
+  --surface-panel: #f4f5f7;
+  --neutral-50: #ffffff;
+  --paper-texture: none;
+  --divider: rgba(0, 0, 0, 0.12);
+  --nav-link: #4b5563;
+  --page-w: 1320px;
+  --gutter: 40px;
+}
+body { background-image: none; background-color: #ffffff; font-variation-settings: normal; color: #1f2937; }
+
+/* Nav: a plain white bar with the paper's short name as wordmark */
+.site-nav { background-image: none; background-color: rgba(255,255,255,0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--divider); height: 68px; }
+.site-nav-links { background-image: none; }
+.classic-wordmark { font-family: var(--font-display); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; color: #111827; text-decoration: none; }
+.site-nav-cta { border-radius: 6px; }
+
+/* Header: centered title block, cover below */
+.article-shell { padding-top: 56px; }
+.article-header { flex-direction: column; align-items: center; text-align: center; gap: var(--space-3xl); padding-bottom: var(--space-4xl); }
+.article-header-main { max-width: 900px; }
+.article-meta { justify-content: center; }
+.article-meta .article-date { font-family: var(--font-body); color: #6b7280; opacity: 1; font-size: 15px; letter-spacing: 0.01em; }
+.article-title { font-size: clamp(34px, 3.6vw, 52px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin-left: auto; margin-right: auto; max-width: 900px; color: #111827; }
+.article-lede { margin-left: auto; margin-right: auto; max-width: 780px; color: #374151; opacity: 1; font-size: 17px; text-align: left; }
+.article-dek { margin-left: auto; margin-right: auto; max-width: 820px; text-align: center; color: #111827; }
+.value-points { margin-left: auto; margin-right: auto; max-width: 780px; text-align: left; }
+.value-points li { color: #374151; }
+.vp-label { color: var(--accent-primary); }
+.authors, .paper-links { justify-content: center; }
+.affils { align-items: center; text-align: center; }
+.author a { border-bottom-color: rgba(29,78,216,0.35); }
+.author.is-decart a { color: var(--accent-primary); }
+.decart-chip { background: transparent; color: var(--accent-primary); border: 1px solid rgba(29,78,216,0.45); }
+.decart-chip img { filter: none; opacity: 0.9; }
+.article-hero-demo { flex: none; width: 100%; max-width: 720px; margin-top: 0; text-align: left; }
+.sim-card { background: #f4f5f7; border-radius: 24px; border: 1px solid var(--divider); }
+.sim-prompt, .sim-canvas, .sim-sri { background: #ffffff; border: 1px solid rgba(0,0,0,0.06); }
+.seg { background: #ffffff; border: 1px solid var(--divider); }
+.slider-track-wrapper::before { background: #e5e7eb; }
+
+/* Section chrome */
+.eyebrow { letter-spacing: 0.14em; color: #4b5563; }
+.eyebrow-badge { background: #ffffff; border: 1px solid var(--divider); }
+.eyebrow-outline { border-color: #9ca3af; color: #374151; }
+.home-section-heading { font-weight: 600; letter-spacing: -0.015em; color: #111827; }
+.section-intro p { color: #4b5563; opacity: 1; }
+.tldr, .stat-card, .chart-card, .explorer, .rq-card, .tech-card, .insight-card, .equation-block, .flow-step, .tokrow-block, .bibtex-block, .figure.is-plot img, .explorer-pane { border: 1px solid rgba(0,0,0,0.06); }
+.tldr li, .stat-card, .chart-card .select-wrap select, .chart-controls .seg, .explorer-tabs button, .explorer-note { background: #ffffff; }
+.stat-value { color: #111827; font-weight: 600; }
+.stat-value .arrow { color: var(--accent-primary); }
+.article-body h2, .article-body h3 { color: #111827; font-weight: 600; }
+.article-body p, .article-body li { color: #374151; opacity: 1; }
+.callout { border-left-color: var(--accent-primary); background: #f8fafc; padding-right: var(--space-lg); border-radius: 0 12px 12px 0; }
+.callout .eyebrow { color: var(--accent-primary); }
+.flow-step.is-accent { background: #111827; }
+.flow-step.is-accent .flow-num { background: #ffffff; color: #111827; }
+.insight-marker { background: var(--accent-primary); }
+.rq-num { color: #111827; }
+.tech-card-num, .flow-num { background: var(--accent-primary); }
+.figure img { border-radius: 16px; border: 1px solid rgba(0,0,0,0.06); }
+.explorer-tabs button[aria-selected="true"] { background: #111827; }
+.quick-links-list a:hover, .quick-links-share:hover, .toc a:hover { color: var(--accent-primary); }
+.toc a.is-active { border-color: var(--accent-primary); }
+.btn-pill { border-color: #d1d5db; color: #111827; background: #ffffff; }
+.btn-pill:hover { background: #111827; border-color: #111827; color: #ffffff; }
+.btn-pill.is-primary { background: var(--accent-primary); border-color: var(--accent-primary); color: #ffffff; }
+.btn-pill.is-primary:hover { background: #14213d; border-color: #14213d; }
+.article-closing-cta { background: #ffffff; border-color: #111827; }
+.article-closing-cta:hover { background: #111827; border-color: #111827; color: #ffffff; }
+
+/* Affiliations banner, quote and code card: light panels instead of the navy and blue backdrops */
+.cta-banner { background: #f4f5f7; background-image: none; border: 1px solid rgba(0,0,0,0.06); }
+.cta-banner .blueprint { display: none; }
+.cta-banner .eyebrow-badge { background: #ffffff; border: 1px solid var(--divider); color: #374151; }
+.cta-banner h3 { color: #111827; }
+.cta-banner p { color: #374151; }
+.cta-banner .btn-pill { background: #ffffff; border-color: #111827; color: #111827; }
+.cta-banner .btn-pill:hover { background: #111827; color: #ffffff; }
+.cta-banner .btn-pill.is-ghost { background: transparent; border-color: #9ca3af; color: #111827; }
+.people-card { background: #ffffff; border: 1px solid rgba(0,0,0,0.08); backdrop-filter: none; }
+.people-card .person-name { color: #111827; }
+.people-card .person-role, .people-card li { color: #374151; }
+.people-card .person-role a { color: var(--accent-primary); border-bottom-color: rgba(29,78,216,0.35); }
+.people-card li::before { background: #9ca3af; }
+.affil-logos img { background: #ffffff; border: 1px solid rgba(0,0,0,0.06); }
+.quote-block { background: #f4f5f7; background-image: none; border: 1px solid rgba(0,0,0,0.06); }
+.quote-block blockquote { color: rgba(17,24,39,0.35); font-family: var(--font-display); font-weight: 500; }
+.quote-block .qw { color: rgba(17,24,39,0.3); }
+.quote-block .qw.on { color: #111827; }
+.quote-name { color: #111827; }
+.quote-role { color: #4b5563; opacity: 1; }
+.quote-role a { color: var(--accent-primary); border-bottom-color: rgba(29,78,216,0.35); }
+.tool-card { background: #f4f5f7; background-image: none; border: 1px solid rgba(0,0,0,0.06); }
+.tool-card h4 { font-weight: 600; letter-spacing: -0.02em; }
+.tool-card-cta { background: #111827; color: #ffffff; }
+.tool-card-cta:hover { background: var(--accent-primary); color: #ffffff; }
+.tool-card-media { border: 1px solid rgba(0,0,0,0.06); }
+.model-chips span { background: #ffffff; border: 1px solid rgba(0,0,0,0.08); }
+
+/* Footer: a light strip */
+.site-footer { background: #f4f5f7; border-top: 1px solid var(--divider); }
+.site-footer-inner { padding-top: 28px; padding-bottom: 20px; flex-direction: column; align-items: flex-start; gap: 10px; }
+.classic-footer-title { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: #111827; }
+.classic-footer-links { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; }
+.classic-footer-links a { color: var(--accent-primary); text-decoration: none; }
+.classic-footer-links a:hover { text-decoration: underline; }
+.site-footer-note { border-top: 1px solid var(--divider); }
+.site-footer-note .container { color: #6b7280; }
+.site-footer-note a { color: #374151; }
+.chart-tip { background: #111827; }
+
+@media (max-width: 900px) {
+  /* values this sheet sets at every width, decided again for small screens (it loads after style.css) */
+  :root { --gutter: 24px; }
+  .article-shell { padding-top: 32px; }
+  .article-header { gap: var(--space-2xl); padding-bottom: 36px; }
+  /* kept on purpose at every width, as part of the classic look: the title's clamp(34px, 3.6vw, 52px) (34px on
+     phones and tablets), the 15px date line, the eyebrow tracking and the footer spacing */
+  .article-meta { align-items: center; }
+  .article-lede { text-align: left; }
+  .site-nav { height: 64px; }
+}
+
+/* Institution logos: the row and its sizes come from style.css (both versions); the classic
+   version centres it and uses square-cornered cards. Sizes are not repeated here, because this
+   sheet loads after style.css and would override its phone rules. */
+.affil-logo-row { justify-content: center; max-width: 1100px; margin-left: auto; margin-right: auto; margin-bottom: var(--space-2xl); }
+.logo-btn { background: #ffffff; border-color: rgba(0,0,0,0.1); border-radius: 14px; }
+.logo-btn:hover, .logo-btn:focus-visible { border-color: #111827; }
+@media (max-width: 700px) {
+  .affil-logo-row { margin-bottom: 12px; }
+  .logo-btn { border-radius: 12px; }
+}
+
+/* VEDJE: wordmark with the paper's short title; chart panels and equation cards on white with hairlines */
+.classic-wordmark { display: inline-flex; align-items: baseline; gap: 12px; white-space: nowrap; }
+.classic-wordmark-sub { font-family: var(--font-body); font-size: 13.5px; font-weight: 500; letter-spacing: 0; color: #6b7280; }
+@media (max-width: 1100px) { .classic-wordmark-sub { display: none; } }
+.eq-step { border: 1px solid rgba(0,0,0,0.06); }
+.eq-step.is-accent { border-color: rgba(29,78,216,0.35); box-shadow: none; }
+.frontier-plot .pt { stroke: #f4f5f7; }
+.latency-plot .dot { stroke: #f4f5f7; }

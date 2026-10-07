@@ -1,0 +1,169 @@
+/* ============================================================
+   VEDJE page components. Loaded after style.css and hero.css (and before
+   theme-classic.css in the classic version). Uses the shared tokens.
+   The cover (css/cover.css) and the pipeline animation (css/overview.css)
+   have their own files.
+   ============================================================ */
+
+/* ---------------- FID reduction against equal budgets (Table 2, relative); bars grow from a zero line at the left ---------------- */
+.gain-bars { display: flex; flex-direction: column; gap: 8px; }
+.gain-row { display: grid; grid-template-columns: minmax(96px, 150px) minmax(0, 1fr); gap: 14px; align-items: center; }
+.gain-row.is-family-break { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--neutral-200); }
+.gain-label { font-size: 14px; line-height: 1.3; letter-spacing: -0.01em; color: var(--neutral-800); display: flex; flex-direction: column; gap: 2px; }
+.gain-label small { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--neutral-400); }
+.gain-track { position: relative; height: 22px; }
+.gain-zero { position: absolute; left: 0; top: -4px; bottom: -4px; width: 1px; background: var(--neutral-400); }
+.gain-bar { position: absolute; left: 0; top: 4px; height: 14px; transition: width .55s cubic-bezier(.22,.61,.36,1); }
+.gain-bar.is-gain { background: var(--series-diffusion); border-radius: 0 4px 4px 0; }
+.gain-bar.is-loss { background: var(--series-ar); border-radius: 0 4px 4px 0; }
+.gain-val { position: absolute; top: 2px; padding: 0 6px; font-size: 12.5px; line-height: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gain-val.is-gain { color: var(--accent-primary); font-weight: 500; }
+.gain-val.is-loss { color: var(--neutral-600); }
+.gain-val.is-inside { color: #fff; }
+.gain-track:hover .gain-bar, .gain-track:focus-visible .gain-bar { filter: brightness(1.08); }
+.gain-axis { margin-top: 2px; }
+.gain-ticks { position: relative; height: 16px; }
+.gain-ticks span { position: absolute; top: 0; transform: translateX(-50%); font-size: 10.5px; color: var(--neutral-400); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gain-ticks span.is-first { transform: none; }
+@media (max-width: 560px) {
+  /* phones: the label sits above its bar, so both use the full width */
+  .gain-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .gain-row + .gain-row { margin-top: 6px; }
+  .gain-label { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+  .gain-axis > div:first-child { display: none; }
+  .gain-val { font-size: 12px; padding: 0 4px; }
+}
+
+/* ?static=1: no transitions or animations, for headless captures */
+html.is-static *, html.is-static *::before, html.is-static *::after { transition: none !important; animation: none !important; }
+
+/* Figures carry width and height attributes (no layout shift while loading); keep their aspect ratio */
+.figure img { height: auto; }
+
+.heat-note { margin: 6px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--neutral-500); opacity: 1; }
+
+/* ---------------- The four steps in equations (How it works); KaTeX renders at build time ---------------- */
+.eq-steps { display: flex; flex-direction: column; gap: 12px; margin: var(--space-xl) 0 var(--space-2xl); }
+.eq-step { background: var(--surface-panel); border-radius: 20px; padding: 20px 24px 20px; display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 10px 28px; align-items: start; }
+.eq-step.is-accent { box-shadow: inset 0 0 0 1px rgba(37,72,246,0.35); }
+.eq-step-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-top: 4px; }
+.eq-step-head h4 { font-family: var(--font-body); font-size: 15.5px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; color: var(--neutral-900); margin: 0; }
+.eq-sec { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--neutral-400); }
+.eq-step-body { min-width: 0; }
+.math-display { overflow-x: auto; overflow-y: hidden; padding: 2px 6px; margin: 0 -6px; -webkit-overflow-scrolling: touch; } /* padding holds KaTeX glyph overhang, so no stray scrollbar */
+.eq-row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 2.4em; }
+.eq-row > .math-display { flex: 0 1 auto; max-width: 100%; }
+.math-display.eq-narrow { display: none; }
+.math-display .katex-display { margin: 4px 0 8px; text-align: left; }
+.math-display .katex-display > .katex { text-align: left; }
+.math-display .katex { font-size: 1.14em; color: var(--neutral-900); }
+.article-body .eq-note { font-size: 14.5px; line-height: 1.55; color: var(--neutral-600); opacity: 1; margin: 6px 0 0; letter-spacing: -0.01em; }
+.eq-note .katex { font-size: 1.03em; color: var(--neutral-800); }
+@media (max-width: 900px) {
+  .eq-step { grid-template-columns: minmax(0, 1fr); padding: 16px 16px 18px; gap: 6px; }
+  .eq-step-head { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding-top: 0; }
+}
+@media (max-width: 560px) {
+  .math-display .katex { font-size: 1em; }
+  .article-body .eq-note { font-size: 15px; }
+  .eq-row { column-gap: 1.6em; }
+  .math-display.eq-wide { display: none; }
+  .math-display.eq-narrow { display: block; }
+}
+
+
+
+/* ---------------- Accuracy against online parameters (Figure 1 redrawn, Table 22) ---------------- */
+.frontier-plot { position: relative; }
+.frontier-plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.frontier-plot .grid { stroke: #E3E3E3; stroke-width: 1; }
+.frontier-plot .axis { stroke: var(--neutral-300); stroke-width: 1; }
+.frontier-plot .tick { font-family: var(--font-body); font-size: 11px; fill: var(--neutral-400); font-variant-numeric: tabular-nums; }
+.frontier-plot .axis-title { font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--neutral-500); }
+.frontier-plot .pt { stroke: var(--surface-panel); stroke-width: 2; }
+.frontier-plot .pt.is-ours { fill: var(--series-diffusion); }
+.frontier-plot .pt.is-base { fill: var(--series-ar); }
+.frontier-plot .pt.is-stage { fill: #fff; stroke: var(--series-ar); stroke-width: 2; }
+.frontier-plot .ring { fill: none; stroke: var(--series-diffusion); stroke-width: 1.5; opacity: 0.35; }
+.frontier-plot .lbl { font-family: var(--font-body); font-size: 12.5px; fill: var(--neutral-800); }
+.frontier-plot .lbl.is-ours { font-weight: 600; fill: var(--accent-primary); }
+.frontier-plot .lbl.is-stage { fill: var(--neutral-500); font-size: 11.5px; }
+.frontier-plot .leader { stroke: var(--neutral-300); stroke-width: 1; }
+.frontier-plot .arrow { stroke: var(--series-diffusion); stroke-width: 1.6; fill: none; opacity: 0.85; }
+.frontier-plot .arrow-head { fill: var(--series-diffusion); opacity: 0.85; }
+.frontier-plot g.pt-g { cursor: default; outline: none; }
+.frontier-plot g.pt-g:hover .pt, .frontier-plot g.pt-g:focus-visible .pt { filter: brightness(1.12); }
+.frontier-plot svg.is-narrow .lbl { font-size: 15px; }
+.frontier-plot svg.is-narrow .lbl.is-stage { font-size: 13.5px; }
+.frontier-plot svg.is-narrow .tick { font-size: 13px; }
+.frontier-plot svg.is-narrow .axis-title { font-size: 12px; letter-spacing: 0.04em; }
+
+/* ---------------- Visual storage per video (Tables 3 and 9), log scale ---------------- */
+.store-bars { display: flex; flex-direction: column; gap: 10px; }
+.store-row { display: grid; grid-template-columns: minmax(120px, 210px) minmax(0, 1fr); gap: 14px; align-items: center; }
+.store-label { font-size: 14px; line-height: 1.3; letter-spacing: -0.01em; color: var(--neutral-800); display: flex; flex-direction: column; gap: 2px; }
+.store-label small { font-size: 12px; letter-spacing: 0; color: var(--neutral-500); }
+.store-track { position: relative; height: 22px; outline: none; }
+.store-bar { position: absolute; left: 0; top: 4px; height: 14px; border-radius: 0 4px 4px 0; background: var(--series-ar); transition: width .55s cubic-bezier(.22,.61,.36,1); }
+.store-bar.is-ours { background: var(--series-diffusion); }
+.store-val { position: absolute; top: 2px; padding: 0 8px; font-size: 12.5px; line-height: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--neutral-700); }
+.store-val b { font-weight: 500; color: var(--neutral-900); }
+.store-val.is-ours b { color: var(--accent-primary); }
+.store-val em { font-style: normal; color: var(--neutral-500); margin-left: 6px; }
+.store-val.is-inside { color: #fff; }
+.store-val.is-inside b, .store-val.is-inside em { color: #fff; }
+.store-ticks { position: relative; height: 16px; }
+.store-ticks span { position: absolute; top: 0; transform: translateX(-50%); font-size: 10.5px; color: var(--neutral-400); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.store-ticks span.is-first { transform: none; }
+.store-ticks span.is-last { transform: translateX(-100%); }
+@media (max-width: 560px) {
+  .store-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .store-row + .store-row { margin-top: 6px; }
+  .store-label { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+  .store-row:last-child > div:first-child { display: none; }
+  .store-val { font-size: 12px; padding: 0 5px; }
+  .store-ticks span.is-minor { display: none; }
+}
+
+/* ---------------- Complete-query latency (Table 6) ---------------- */
+.latency-plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.latency-plot .grid { stroke: #E3E3E3; stroke-width: 1; }
+.latency-plot .axis { stroke: var(--neutral-300); stroke-width: 1; }
+.latency-plot .tick { font-family: var(--font-body); font-size: 11px; fill: var(--neutral-400); font-variant-numeric: tabular-nums; }
+.latency-plot .axis-title { font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--neutral-500); }
+.latency-plot .line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.latency-plot .line.is-ours { stroke: var(--series-diffusion); }
+.latency-plot .line.is-base { stroke: var(--series-ar); }
+.latency-plot .dot { stroke: var(--surface-panel); stroke-width: 2; }
+.latency-plot .dot.is-ours { fill: var(--series-diffusion); }
+.latency-plot .dot.is-base { fill: var(--series-ar); }
+.latency-plot .val { font-family: var(--font-body); font-size: 11.5px; fill: var(--neutral-700); font-variant-numeric: tabular-nums; }
+.latency-plot .val.is-ours { fill: var(--accent-primary); font-weight: 500; }
+.latency-plot svg.is-narrow .tick, .latency-plot svg.is-narrow .val { font-size: 13px; }
+.latency-plot svg.is-narrow .axis-title { font-size: 12px; letter-spacing: 0.04em; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; font-size: 13px; color: var(--neutral-700); }
+.chart-legend span { display: inline-flex; align-items: center; gap: 8px; }
+.chart-legend i { width: 14px; height: 4px; border-radius: 2px; background: var(--series-ar); display: inline-block; }
+.chart-legend i.is-ours { background: var(--series-diffusion); }
+.latency-plot .line.is-light { stroke: #9DB0FB; }
+.latency-plot .dot.is-light { fill: #9DB0FB; }
+.latency-plot .val.is-light { fill: var(--neutral-700); }
+.chart-legend i.is-light { background: #9DB0FB; }
+
+/* gain labels with the absolute values in small print */
+.gain-label small { text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--neutral-500); }
+.gain-label small.gain-from { letter-spacing: 0.01em; font-size: 11.5px; color: var(--neutral-400); font-variant-numeric: tabular-nums; }
+.gain-row.is-ours .gain-label { color: var(--accent-primary); font-weight: 500; }
+
+/* ---------------- Banner: one box per person ---------------- */
+.people-stack { display: flex; flex-direction: column; gap: 14px; }
+.people-stack .people-card { gap: 16px; }
+/* each box opens the same page as the name in the author list; the name link is stretched over the box,
+   and the links inside the role line stay clickable above it */
+.people-stack .people-card { position: relative; transition: border-color .2s, background-color .2s; }
+.people-card .person-link { color: inherit; text-decoration: none; }
+.people-card .person-link::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.people-card .person-link:focus-visible { outline: none; }
+.people-card:has(.person-link:focus-visible) { outline: 2px solid #fff; outline-offset: 3px; }
+.people-card .person-role a { position: relative; z-index: 1; }
+.people-stack .people-card:hover { border-color: rgba(255,255,255,0.42); background-color: rgba(255,254,251,0.13); }

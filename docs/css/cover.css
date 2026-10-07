@@ -1,0 +1,291 @@
+/* ============================================================
+   The cover: "Index once, rerank every query" (js/cover.js builds it inside #vedjeCover).
+   Reuses the sim-card chrome of style.css and hero.css (.sim-top, .seg, .sim-step, .sim-canvas,
+   .sim-controls, .sim-play, the slider and .sim-caption); its own classes start with vc-.
+   Sizes follow the card's width through a container query, so the brand version (a 560px
+   column beside the title), the classic version (a 720px card below it) and the stacked
+   tablet and phone layouts each get the layout that fits. Loaded before theme-classic.css,
+   so every colour comes from the shared tokens.
+   ============================================================ */
+#vedjeCover { container: vcover / inline-size; text-align: left; }
+.vedje-cover {
+  --vc-blue: var(--series-diffusion);
+  --vc-gray: var(--series-ar);
+  --vc-ink: var(--neutral-800);
+  --vc-tint: rgba(37, 72, 246, 0.07);
+  --vc-tint: color-mix(in srgb, var(--series-diffusion) 8%, transparent);
+  --vc-tok: 8px;     /* a cached token in the index panel */
+  --vc-mtok: 3px;    /* a cached token in a candidate row */
+  --vc-cell: 38px;   /* the largest frame and cache-slot width */
+  --vc-row: 28px;    /* a candidate row */
+  --vc-gap: 5px;
+  --vc-thumb: 24px;  /* the slider thumb, for the slider fill */
+  --vc-pr: 4px;      /* candidate rows: right padding, score width and column gap, shared with the list header */
+  --vc-sw: 28px;
+  --vc-cg: 5px;
+}
+.vedje-cover [hidden] { display: none !important; }
+
+/* ---------- top row: mode toggle and step counter ---------- */
+.vedje-cover .sim-top { margin-bottom: 12px; }
+.vedje-cover .seg button[role="tab"] { letter-spacing: 0.1em; }
+.vedje-cover .vc-u { text-transform: none; letter-spacing: 0.04em; }
+.vedje-cover .seg .lbl-long { display: inline; }
+.vedje-cover .seg .lbl-short { display: none; }
+
+/* ---------- panels ---------- */
+.vedje-cover .vc-panel { padding: 10px 12px 11px; margin-bottom: 10px; }
+.vc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.vc-head .eyebrow { font-size: 10px; letter-spacing: 0.2em; line-height: 1.2; }
+.vc-status { font-size: 11px; line-height: 1.2; color: var(--neutral-600); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* the indexed video, named above its frames */
+.vc-vlabel { margin: -1px 0 7px; font-size: 11px; line-height: 1.3; color: var(--neutral-600); }
+.vc-vlabel b { font-weight: 600; color: var(--vc-ink); }
+
+/* frames, cache slots and their labels share one column layout, so frame t sits above slot Zt */
+.vc-frames, .vc-cache, .vc-z { display: flex; justify-content: space-between; gap: 3px; }
+.vc-frame, .vc-slot, .vc-z span { flex: 0 1 var(--vc-cell); min-width: 0; }
+.vc-frame { aspect-ratio: 4 / 3; border-radius: 3px; overflow: hidden; opacity: 0.42; transition: opacity .25s, box-shadow .25s; }
+.vc-frame svg { display: block; width: 100%; height: 100%; }
+.vc-frame.is-done { opacity: 1; }
+.vc-frame.is-now { opacity: 1; box-shadow: 0 0 0 1.5px var(--nav-bg), 0 0 0 3px var(--vc-ink); }
+
+/* the pipeline: encoder, patch grid of the current frame, compressor, its tokens */
+.vc-pipe { display: flex; align-items: center; justify-content: center; margin: 10px 0 9px; }
+.vc-box {
+  flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  padding: 6px 9px; border-radius: 9px; background: var(--surface-panel); color: var(--neutral-600);
+  font-size: 11px; font-weight: 500; line-height: 1.2; transition: background-color .3s, color .3s;
+}
+.vc-box small { font-size: 10px; font-weight: 400; line-height: 1.2; margin-top: 2px; opacity: 0.85; }
+.vc-enc { min-height: 40px; }
+.vc-enc span { white-space: nowrap; }
+.vc-comp { min-height: 34px; }
+.vc-enc.is-on { background: var(--vc-ink); color: #fff; }
+.vc-comp.is-on { background: var(--vc-blue); color: #fff; }
+.vc-arrow { position: relative; flex: 1 1 18px; min-width: 14px; max-width: 120px; height: 1.5px; margin: 0 6px 0 5px; background: var(--neutral-300); }
+.vc-arrow.has-lbl { flex-basis: 64px; min-width: 56px; }
+.vc-arrow::after { content: ''; position: absolute; right: -3px; top: 50%; transform: translateY(-50%); border-left: 6px solid var(--neutral-300); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+.vc-arrow em { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); font-style: normal; font-size: 10px; line-height: 1.1; color: var(--neutral-500); white-space: nowrap; }
+.vc-mosaic { flex: none; width: 46px; height: 46px; border-radius: 4px; overflow: hidden; background: var(--nav-bg); transition: opacity .3s; }
+.vc-mosaic svg { display: block; width: 100%; height: 100%; }
+.vc-out { flex: none; display: flex; align-items: center; gap: 7px; transition: opacity .3s; }
+.vc-out-lbl { min-width: 3ch; font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--vc-blue); font-variant-numeric: tabular-nums; }
+.vc-pipe.is-idle .vc-mosaic, .vc-pipe.is-idle .vc-out { opacity: 0.75; }
+
+/* token groups: four tokens as two by two, or one token in the 16-token mode */
+.vc-tok-group { display: grid; grid-template-columns: repeat(2, var(--vc-tok)); grid-auto-rows: var(--vc-tok); gap: 2px; place-content: center; }
+.vc-tok-group i { display: block; border-radius: 2px; background: var(--vc-blue); }
+.is-m1 .vc-tok-group { grid-template-columns: var(--vc-tok); }
+.is-m1 .vc-tok-group i:nth-child(n+2) { display: none; }
+
+/* the ordered cache Z1 to Z16 */
+.vc-slot { height: calc(2 * var(--vc-tok) + 10px); border: 1px dashed var(--neutral-300); border-radius: 4px; transition: background-color .25s, border-color .25s; }
+.vc-slot i { visibility: hidden; }
+.vc-slot.is-full { border-style: solid; border-color: transparent; background: var(--vc-tint); }
+.vc-slot.is-full i { visibility: visible; }
+.vc-slot.is-now { border-color: var(--vc-blue); }
+.vc-slot.is-new i { animation: vc-drop .38s cubic-bezier(.3, .7, .3, 1) both; }
+@keyframes vc-drop { from { transform: translateY(-10px); opacity: 0; } }
+.vc-z { margin-top: 3px; }
+.vc-z span { text-align: center; font-family: var(--font-mono); font-size: 10px; line-height: 1.2; color: var(--neutral-400); white-space: nowrap; }
+.vc-z span.is-now { color: var(--vc-blue); font-weight: 600; }
+
+/* storage meter: one scale (48 KiB) for both modes */
+.vc-meter { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
+.vc-meter .eyebrow { flex: none; justify-content: flex-start; font-size: 10px; letter-spacing: 0.18em; line-height: 1.2; }
+.vc-meter-track { flex: 1 1 auto; height: 8px; border-radius: 4px; background: var(--series-track); overflow: hidden; }
+.vc-meter-fill { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--vc-blue); transition: width .35s ease; }
+.vc-meter-val { flex: none; min-width: 9ch; text-align: right; font-family: var(--font-mono); font-size: 12px; line-height: 1.2; color: var(--vc-blue); font-variant-numeric: tabular-nums; }
+.vc-ref { margin-top: 4px; font-size: 10.5px; line-height: 1.35; color: var(--neutral-500); }
+.vc-ref b { font-family: var(--font-mono); font-weight: 500; color: var(--neutral-700); }
+
+/* ---------- online: query, first stage and joint encoder beside the candidate list ---------- */
+.vc-onbody { position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr); column-gap: 20px; align-items: start; }
+.vc-side { display: flex; flex-direction: column; gap: 7px; }
+.vc-query { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.vc-qtag { font-size: 10px; letter-spacing: 0.2em; line-height: 1.2; }
+.vc-qtext { display: grid; width: 100%; font-family: var(--font-mono); font-size: 12px; line-height: 1.35; color: #141414; border-radius: 6px; }
+.vc-qtext > span { grid-area: 1 / 1; }
+.vc-qsizer { visibility: hidden; }
+.vc-qtext.is-empty { outline: 1px dashed var(--neutral-300); outline-offset: 1px; }
+.vc-stage { width: 100%; min-height: 28px; padding: 5px 8px; }
+.vc-s1.is-on { background: var(--vc-gray); color: #fff; }
+.vc-je.is-on { background: var(--vc-blue); color: #fff; }
+.vc-calls { font-size: 10.5px; line-height: 1.3; color: var(--neutral-600); }
+.vc-calls b { font-family: var(--font-mono); font-weight: 600; color: var(--vc-ink); }
+
+.vc-links { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.vc-links.is-off { display: none; }
+.vc-link { fill: none; stroke-linecap: round; opacity: 0; transition: opacity .3s; }
+.vc-link-s1 { stroke: var(--vc-gray); stroke-width: 1; }
+.vc-link-je { stroke: var(--vc-blue); stroke-width: 1.6; }
+.vc-link-dot { fill: var(--vc-blue); opacity: 0; transition: opacity .3s; }
+.vc-links.show-s1 .vc-link-s1 { opacity: 0.6; }
+.vc-links.show-je .vc-link-je, .vc-links.show-je .vc-link-dot { opacity: 1; }
+
+/* the list header names the two score columns, each label right above its scores */
+.vc-listhead { position: relative; height: 12px; margin-bottom: 5px; font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; line-height: 12px; color: var(--neutral-500); white-space: nowrap; }
+.vc-listhead span { position: absolute; top: 0; }
+.vc-lh-c { left: 6px; }
+.vc-lh-v { right: var(--vc-pr); color: var(--vc-blue); }
+.vc-lh-s { right: calc(var(--vc-pr) + var(--vc-sw) + var(--vc-cg) + 6px); }
+
+/* candidate rows: absolutely placed, so the re-sort slides each row to its new place */
+.vc-list { position: relative; list-style: none; margin: 0; padding: 0; height: calc(5 * var(--vc-row) + 4 * var(--vc-gap)); }
+.vc-cand {
+  position: absolute; left: 0; right: 0; top: 0; height: var(--vc-row);
+  display: flex; align-items: center; gap: var(--vc-cg); padding: 0 var(--vc-pr) 0 6px; border-radius: 8px;
+  transform: translateY(calc(var(--pos, 0) * (var(--vc-row) + var(--vc-gap))));
+  transition: transform .75s cubic-bezier(.3, .7, .2, 1), background-color .25s, box-shadow .25s;
+}
+.vc-cand.is-match { z-index: 2; }
+.vc-cand.is-reading { background: var(--vc-tint); box-shadow: inset 0 0 0 1.5px var(--vc-blue); }
+.vc-cand.is-top { background: var(--vc-tint); box-shadow: inset 0 0 0 1.5px var(--vc-blue); }
+.vc-rk { flex: none; min-width: 66px; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.vc-rank { display: none; font-size: 10.5px; font-weight: 600; line-height: 1.15; color: var(--vc-blue); white-space: nowrap; }
+.vc-cand.is-sorted .vc-rank { display: block; }
+.vc-s1rank { font-size: 10px; line-height: 1.15; color: var(--vc-gray); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vc-thumb { flex: none; width: 32px; height: 24px; border-radius: 3px; overflow: hidden; }
+.vc-thumb svg { display: block; width: 100%; height: 100%; }
+/* the video's label above its tokens; the video that matches the query carries a check mark */
+.vc-main { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.vc-desc { display: block; font-size: 10.5px; line-height: 1.2; color: var(--vc-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vc-check { display: inline-block; width: 10px; height: 10px; margin: 0 3px 0 -1px; vertical-align: -1px; fill: none; stroke: var(--vc-blue); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.vc-in { flex: none; display: flex; align-items: center; gap: 3px; }
+.vc-qt { display: flex; gap: 1px; }
+.vc-qt i { display: block; width: var(--vc-mtok); height: calc(2 * var(--vc-mtok) + 1px); border-radius: 1px; background: var(--vc-ink); opacity: 0; transition: opacity .25s; }
+.vc-cand.is-reading .vc-qt i { opacity: 1; }
+.vc-cs { display: flex; gap: 1px; }
+.vc-cs .vc-tok-group { grid-template-columns: repeat(2, var(--vc-mtok)); grid-auto-rows: var(--vc-mtok); gap: 1px; width: calc(2 * var(--vc-mtok) + 1px); height: calc(2 * var(--vc-mtok) + 1px); }
+.vc-cs .vc-tok-group i { border-radius: 0.5px; }
+.is-m1 .vc-cs .vc-tok-group { grid-template-columns: var(--vc-mtok); }
+.vc-prior { flex: none; margin-left: auto; padding: 2px 5px; border-radius: 4px; background: var(--surface-panel); font-size: 10px; line-height: 1.3; color: var(--neutral-600); font-variant-numeric: tabular-nums; white-space: nowrap; opacity: 0; visibility: hidden; transform: translateX(-5px); transition: opacity .3s, transform .3s, visibility .3s; }
+.vc-score { flex: 0 0 var(--vc-sw); text-align: right; font-family: var(--font-mono); font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--vc-blue); font-variant-numeric: tabular-nums; opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; }
+/* the first stage returns its candidates with their scores, so the grey scores show as soon as the query arrives */
+.vc-online:not(.is-wait) .vc-prior { opacity: 1; visibility: visible; transform: none; }
+.vc-cand.is-scored .vc-score, .vc-cand.is-reading .vc-score { opacity: 1; visibility: visible; }
+.vc-cand.is-reading .vc-score { transition-delay: .5s; }
+/* before a query arrives the five rows wait as empty bars, then fill in stage-1 order */
+.vc-rk, .vc-thumb, .vc-main { transition: opacity .35s, visibility .35s; transition-delay: calc(var(--i, 0) * 70ms); }
+.vc-online.is-wait .vc-cand { background: var(--surface-panel); }
+.vc-online.is-wait .vc-rk, .vc-online.is-wait .vc-thumb, .vc-online.is-wait .vc-main { opacity: 0; visibility: hidden; transition-delay: 0s; }
+
+/* ---------- controls and captions ---------- */
+.vedje-cover .sim-controls { margin-top: 2px; }
+/* both captions sit in one grid cell, so the card keeps one height in either mode */
+.vc-captions { display: grid; }
+.vc-captions > .sim-caption { grid-area: 1 / 1; visibility: hidden; }
+.vc-captions > .sim-caption.is-on { visibility: visible; }
+.vc-fine { font-size: 0.95em; }
+
+/* ?static=1 and reduced motion: no transitions or animations inside the card */
+.vedje-cover.vc-static *, .vedje-cover.vc-static *::before, .vedje-cover.vc-static *::after { transition: none !important; animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .vedje-cover *, .vedje-cover *::before, .vedje-cover *::after { transition: none !important; animation: none !important; }
+}
+
+/* ---------- desktop card chrome (the shared phone and tablet chrome comes from style.css) ---------- */
+@media (min-width: 901px) {
+  .vedje-cover.sim-card { padding: 20px 20px 20px; }
+}
+@media (max-width: 900px) {
+  .vedje-cover { --vc-thumb: 28px; }
+}
+
+/* Container queries style the descendants of #vedjeCover, never the card itself, so the per-width
+   custom properties are set on the two panels, which hold every element that uses them. */
+
+/* ---------- a wide card: the classic version, and the stacked tablet layouts ---------- */
+@container vcover (min-width: 640px) {
+  .vc-panel { --vc-tok: 9px; --vc-mtok: 4px; --vc-cell: 40px; --vc-row: 34px; --vc-gap: 6px; --vc-pr: 8px; --vc-sw: 34px; --vc-cg: 8px; }
+  .vc-onbody { grid-template-columns: 140px minmax(0, 1fr); column-gap: 28px; }
+  .vc-mosaic { width: 52px; height: 52px; }
+  .vc-rk { min-width: 78px; }
+  .vc-thumb { width: 40px; height: 30px; }
+  .vc-cand { padding-left: 9px; }
+  .vc-desc { font-size: 11px; }
+  .vc-main { gap: 3px; }
+  .vc-lh-c { left: 9px; }
+  .vc-in { gap: 4px; }
+  .vc-cs { gap: 1.5px; }
+  .vc-qtext { font-size: 12.5px; }
+  .vc-score { font-size: 12.5px; }
+}
+
+/* ---------- the top row stays on one line while the toggle and the counter fit ---------- */
+@container vcover (min-width: 430px) {
+  .vedje-cover .sim-top { flex-wrap: nowrap; justify-content: space-between; }
+  .vedje-cover .sim-step { flex: none; }
+  .vedje-cover .seg { display: inline-flex; width: auto; flex-wrap: nowrap; }
+  .vedje-cover .seg button[role="tab"] { flex: none; white-space: nowrap; }
+}
+
+/* ---------- the toggle spans the card once the counter no longer fits beside it ---------- */
+@container vcover (max-width: 429px) {
+  .vedje-cover .sim-top { flex-wrap: wrap; }
+  .vedje-cover .sim-step { flex: 1 1 100%; }
+  .vedje-cover .seg { display: flex; width: 100%; flex-wrap: nowrap; }
+  .vedje-cover .seg button[role="tab"] { flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+}
+
+/* ---------- a narrower card: the query block sits above the list ---------- */
+@container vcover (max-width: 515px) {
+  .vc-arrow em { display: none; }
+  .vc-arrow.has-lbl { flex-basis: 18px; min-width: 14px; }
+  .vc-onbody { grid-template-columns: minmax(0, 1fr); row-gap: 10px; }
+  .vc-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .vc-query { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 10px; }
+  .vc-qtag { flex: none; }
+  .vc-qtext { flex: 1 1 auto; }
+  .vc-calls { grid-column: 1 / -1; }
+}
+
+/* ---------- phones: the pipeline on two rows, candidate rows on two lines (the label below), short toggle labels ---------- */
+@container vcover (max-width: 399px) {
+  .vc-panel { --vc-tok: 5px; --vc-mtok: 4px; --vc-row: 44px; --vc-gap: 6px; }
+  .vedje-cover .seg .lbl-long { display: none; }
+  .vedje-cover .seg .lbl-short { display: inline; }
+  .vedje-cover .vc-panel { padding: 10px 10px 11px; }
+  .vc-frames, .vc-cache, .vc-z { gap: 2px; }
+  .vc-slot { height: calc(2 * var(--vc-tok) + 8px); }
+  .vc-tok-group { gap: 1px; }
+  .vc-z span { visibility: hidden; }
+  .vc-z span:first-child, .vc-z span:last-child { visibility: visible; }
+  .vc-pipe { flex-wrap: wrap; justify-content: center; row-gap: 8px; margin: 9px 0 8px; }
+  .vc-enc { flex: 1 0 100%; min-height: 0; padding: 6px 8px; }
+  .vc-enc span { white-space: normal; }
+  .vc-pipe > .vc-arrow:first-of-type { display: none; }
+  .vc-arrow, .vc-arrow.has-lbl { flex: 0 1 16px; min-width: 10px; margin: 0 6px 0 4px; }
+  .vc-mosaic { width: 42px; height: 42px; }
+  .vc-comp { padding: 5px 8px; }
+  .vc-out { gap: 5px; }
+  .vc-meter { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 5px; }
+  .vc-meter-track { grid-column: 1 / -1; grid-row: 2; }
+  .vc-panel { --vc-pr: 7px; --vc-cg: 6px; }
+  .vc-cand { flex-wrap: wrap; align-content: center; row-gap: 3px; padding-left: 7px; }
+  .vc-thumb { order: -1; }
+  .vc-rk { flex: 1 1 auto; }
+  .vc-main { order: 5; flex: 1 0 100%; }
+  .vc-in { display: none; }
+  .vc-lh-c { left: 7px; }
+  .vc-prior { margin-left: 0; padding: 2px 5px; }
+}
+@container vcover (max-width: 269px) {
+  .vc-panel { --vc-tok: 4px; }
+}
+
+/* ---------- reserved height: the card keeps its built height while the script loads ----------
+   Each value sits just under the smallest built height of its range in both versions (measured at
+   5px steps with the 24px gutter of style.css under 900px). The classic version shows a 720px card
+   below the title from 1061px; make_classic.py gives its .article-shell the id "top". */
+#vedjeCover { min-height: 672px; }
+.article-shell#top #vedjeCover { min-height: 712px; }
+@media (max-width: 1060px) { #vedjeCover, .article-shell#top #vedjeCover { min-height: 706px; } }
+@media (max-width: 900px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 720px; } }
+@media (max-width: 720px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 690px; } }
+@media (max-width: 599px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 789px; } }
+@media (max-width: 479px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 962px; } }
+@media (max-width: 399px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 996px; } }
+@media (max-width: 359px)  { #vedjeCover, .article-shell#top #vedjeCover { min-height: 1042px; } }

@@ -1,0 +1,25 @@
+# data, features and runs
+data_root/
+output/
+*.pth
+*.pt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# environments and secrets
+.venv/
+venv/
+env/
+.env
+
+# editors and systems
+.DS_Store
+.ipynb_checkpoints/
+.idea/
+.vscode/

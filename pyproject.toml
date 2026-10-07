@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vedje"
+version = "0.1.0"
+description = "VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Shahaf Wagner" },
+    { name = "Gabriele Serussi" },
+    { name = "Dan Ben Ami" },
+    { name = "Tomer Galanti" },
+    { name = "Chaim Baskin" },
+]
+dependencies = [
+    "torch>=2.4",
+    "torchvision",
+    "transformers>=5.13",
+    "huggingface_hub",
+    "safetensors",
+    "sentencepiece",
+    "numpy",
+    "tqdm",
+    "ruamel.yaml",
+    "python-dotenv",
+    "pillow",
+    "av",
+    "mediapy",
+    "open_clip_torch",
+]
+
+[project.optional-dependencies]
+comet = ["comet_ml"]
+dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://gabrieleserussi.github.io/vedje/"
+Repository = "https://github.com/GabrieleSerussi/vedje"
+
+[tool.setuptools.packages.find]
+include = ["vedje*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["network: downloads model checkpoints from the Hugging Face Hub"]

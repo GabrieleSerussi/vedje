@@ -1,0 +1,151 @@
+/* ---------------- VEDJE pipeline animation (How it works, js/overview.js) ----------------
+   Figure 2 of the paper as three scenes. Blue (--series-diffusion) marks what VEDJE stores and computes,
+   gray (--series-ar) the frozen encoder, its features and the first stage. Both come from the page tokens,
+   so the classic theme restyles the card through its own token values. */
+.vedje-anim { position: relative; --va-blue: var(--series-diffusion); --va-gray: var(--series-ar); background: var(--surface-panel); border-radius: 28px; padding: 22px 24px 20px; margin: var(--space-lg) 0 0; container-type: inline-size; }
+.va-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.va-tabs { flex-wrap: nowrap; min-width: 0; }
+.va-tabs button { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.va-num { flex: none; width: 18px; height: 18px; border-radius: 5px; background: var(--neutral-200); color: var(--neutral-800); display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 600; letter-spacing: 0; }
+.va-tabs button[aria-selected="true"] .va-num { background: #fff; color: var(--accent-primary); }
+.va-tabs .lbl-short { display: none; }
+/* the tabs follow the card's width (container query on .vedje-anim): short labels once the long ones would
+   not fit on one line next to the play button, then only the selected tab keeps its label. Measured in place
+   with the play button: the long labels need a content box of 465px (Decart) and 480px (classic) with the
+   phone styles, the short ones 345px and 354px; above 900px the content box never falls below 665px, more than
+   the 585px the desktop styles need. The switches sit about 10px above the classic needs. */
+@container (max-width: 491px) {
+  .va-tabs .lbl-long { display: none; }
+  .va-tabs .lbl-short { display: inline; }
+}
+@container (max-width: 363px) {
+  .va-tabs button:not([aria-selected="true"]) .lbl-short { display: none; }
+}
+.va-play { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--neutral-900); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.va-play:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.va-play svg { width: 18px; height: 18px; fill: currentColor; display: none; }
+.va-play .i-replay { fill: none; }
+.va-play[data-mode="play"] .i-play, .va-play[data-mode="pause"] .i-pause, .va-play[data-mode="replay"] .i-replay { display: block; }
+.vedje-anim.is-static .va-play, .vedje-anim.is-static .va-progress { display: none; }
+.va-stage { background: var(--nav-bg); border-radius: 20px; padding: 12px 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); }
+.va-svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+.vedje-anim.is-narrow .va-svg { max-width: 400px; }
+.va-progress { height: 3px; background: var(--neutral-200); border-radius: 2px; margin: 14px 0 12px; overflow: hidden; }
+.va-progress i { display: block; height: 100%; width: 0; background: var(--accent-primary); }
+.vedje-anim.is-static .va-caption { margin-top: 14px; }
+/* the caption keeps the height of the longest of the three captions (set by the script), so the card does not jump */
+.article-body .va-caption { font-size: 15.5px; line-height: 1.5; letter-spacing: -0.01em; color: var(--neutral-700); margin: 0; opacity: 1; }
+.va-caption strong { color: var(--neutral-900); font-weight: 500; }
+
+/* SVG text: the body face for words, the KaTeX faces of the equation cards for symbols */
+.va-svg text { font-family: var(--font-body); }
+.va-t { font-size: calc(13px * var(--va-f, 1)); fill: var(--neutral-700); }
+.va-small { font-size: calc(11.5px * var(--va-f, 1)); fill: var(--neutral-500); }
+.va-lab { fill: var(--neutral-600); }
+.va-bt { fill: var(--neutral-800); }
+.va-sym { fill: var(--neutral-800); }
+.va-blue { fill: var(--va-blue); }
+.va-idx { fill: var(--neutral-600); }
+.va-mi { font-family: KaTeX_Math, 'Times New Roman', serif; font-style: italic; font-size: 1.1em; }
+.va-mn { font-family: KaTeX_Main, 'Times New Roman', serif; font-style: normal; font-size: 1.1em; }
+.va-mc { font-family: KaTeX_Caligraphic, 'Times New Roman', serif; font-style: normal; font-size: 1.1em; }
+.va-sub { font-size: 0.78em; }
+.va-cnt { font-family: var(--font-mono); font-size: calc(16px * var(--va-f, 1)); font-weight: 600; fill: var(--va-blue); }
+.va-svg .va-mono { font-family: var(--font-mono); fill: var(--neutral-700); }
+.va-op { font-size: calc(18px * var(--va-f, 1)); fill: var(--neutral-600); }
+.va-loss { font-size: calc(15px * var(--va-f, 1)); fill: var(--va-blue); }
+.va-cachelab { fill: var(--neutral-500); }
+.va-cachelab.is-strong { fill: var(--va-blue); }
+.va-gone { fill: var(--va-blue); font-weight: 500; }
+.va-qt { fill: var(--neutral-800); }
+.va-rank { fill: var(--neutral-600); font-weight: 600; }
+.va-nogt { fill: var(--neutral-600); }
+
+/* components: gray for the frozen encoder and the first stage, blue for VEDJE's own parts */
+.va-box rect { stroke-width: 1.2; transition: fill .15s, stroke .15s, fill-opacity .15s, stroke-opacity .15s; }
+.va-frozen rect { fill: var(--neutral-150); stroke: var(--neutral-300); }
+.va-frozen.is-on rect { fill: var(--neutral-200); stroke: var(--va-gray); stroke-width: 1.8; }
+.va-vedje rect { fill: var(--va-blue); fill-opacity: 0.05; stroke: var(--va-blue); stroke-opacity: 0.55; }
+.va-vedje.is-on rect { fill-opacity: 0.13; stroke-opacity: 1; stroke-width: 2; }
+.va-vedje.is-gone rect { stroke-dasharray: 5 4; fill-opacity: 0.02; }
+.va-crossed rect { stroke-dasharray: 4 3; fill: none; }
+.va-strike { stroke: var(--neutral-500); stroke-width: 1.3; stroke-linecap: round; }
+.va-nogbox { fill: none; stroke: var(--neutral-400); stroke-dasharray: 3 2.5; }
+.va-nog .va-sym { fill: var(--neutral-500); }
+.va-nog .va-bt { fill: var(--neutral-500); }
+.va-arr { fill: none; stroke: var(--neutral-400); stroke-width: 1.3; }
+.va-arr.is-on { stroke: var(--va-blue); stroke-width: 1.8; }
+.va-head-off { fill: var(--neutral-400); }
+.va-head-on { fill: var(--va-blue); }
+.va-brace { fill: none; stroke: var(--neutral-400); stroke-width: 1.1; }
+.va-gridbg { fill: var(--nav-bg); stroke: var(--neutral-200); }
+.va-grid-gray .va-cell { fill: var(--va-gray); stroke: var(--va-gray); stroke-width: 1.3; }
+.va-grid-blue .va-cell { fill: var(--va-blue); stroke: var(--va-blue); stroke-width: 1.3; }
+.va-tok { fill: var(--va-blue); }
+.va-slot { fill: none; stroke: var(--neutral-300); stroke-dasharray: 2 2; }
+.va-quad { fill: none; stroke: var(--va-blue); stroke-width: 1.8; }
+.va-ring { fill: none; stroke: var(--va-blue); stroke-width: 2; }
+.va-drop { fill: none; stroke: var(--va-blue); stroke-width: 1.4; stroke-dasharray: 3 3; }
+.va-hat { fill: none; stroke: var(--va-blue); stroke-width: 1.1; stroke-linejoin: round; stroke-linecap: round; }
+.va-plus circle { fill: var(--nav-bg); stroke: var(--va-blue); stroke-width: 1.4; }
+.va-plus path { stroke: var(--va-blue); stroke-width: 1.6; }
+.va-plus.is-on circle { fill: var(--va-blue); fill-opacity: 0.14; stroke-width: 2.2; }
+.va-input { fill: none; stroke: var(--neutral-300); stroke-dasharray: 3 3; }
+.va-pill rect { fill: var(--nav-bg); stroke: var(--neutral-400); stroke-width: 1; transition: stroke .15s; }
+.va-pill.is-on rect { stroke: var(--neutral-800); stroke-width: 1.4; }
+
+/* frames, drawn like the cover's: sky, clouds, a distant tree line, grass, the sun and the person */
+.va-sky { fill: url(#vaSkyG); }
+.va-cloud { fill: #fff; fill-opacity: 0.55; }
+.va-far { fill: #8BA596; }
+.va-ground { fill: url(#vaGrassG); }
+.va-halo { fill: #F6D982; fill-opacity: 0.45; }
+.va-sun { fill: #F1C24F; }
+.va-person .va-shadow { fill: #000; fill-opacity: 0.16; }
+.va-person .va-skin { fill: #DFB593; }
+.va-person .va-hair { fill: #3A2A1F; }
+.va-person .va-coat { fill: #3D6084; }
+.va-person .va-shoe { fill: #1D1E21; }
+.va-person .va-limb { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.va-person .va-leg { stroke: #2F333B; }
+.va-person .va-leg.is-far { stroke: #22252B; }
+.va-person .va-arm { stroke: #3D6084; }
+.va-person .va-arm.is-far { stroke: #2F4B67; }
+.va-frameline { fill: none; stroke: rgba(0,0,0,0.14); }
+/* the candidates' labels; the check mark marks the video that matches the query */
+.va-clab { fill: var(--neutral-800); }
+.va-check { fill: none; stroke: var(--va-blue); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.va-patchline { stroke: #fff; stroke-opacity: 0.75; stroke-width: 0.8; }
+
+/* the loss over the valid pairs */
+.va-track { stroke: var(--neutral-300); stroke-width: 1; }
+.va-dot { fill: var(--neutral-400); }
+.va-dot.is-out { fill: var(--nav-bg); stroke: var(--neutral-300); }
+.va-dot.is-cur { fill: var(--va-blue); }
+.va-arc { fill: none; stroke: var(--neutral-400); stroke-width: 1.1; }
+.va-arc.is-cur { stroke: var(--va-blue); stroke-width: 1.8; }
+.va-errbar { fill: var(--neutral-400); }
+.va-mean { stroke: var(--va-blue); stroke-width: 1.5; stroke-dasharray: 4 3; }
+
+/* the candidate list */
+.va-card { fill: var(--surface-card); stroke: var(--neutral-200); stroke-width: 1.2; transition: stroke .15s; }
+.va-card.is-on { stroke: var(--va-blue); stroke-width: 1.8; }
+.va-bartrack { fill: var(--neutral-150); }
+.va-bar-rho { fill: var(--va-gray); }
+.va-bar-s { fill: var(--va-blue); }
+.va-flydot { fill: var(--va-blue); }
+.va-sortmark { fill: var(--neutral-500); }
+.va-sym.is-sort { fill: var(--neutral-900); font-weight: 600; }
+.va-svg .va-rhov { fill: var(--va-gray); }
+
+/* reduced motion: the card shows still frames (js/overview.js), so its highlights switch without transitions */
+@media (prefers-reduced-motion: reduce) {
+  .vedje-anim *, .vedje-anim *::before, .vedje-anim *::after { transition: none !important; }
+}
+@media (max-width: 700px) {
+  .vedje-anim { padding: 16px 12px 16px; border-radius: 22px; }
+  .va-stage { padding: 10px 6px; border-radius: 16px; }
+  .va-tabs button { padding: 7px 9px; gap: 6px; letter-spacing: 0.06em; }
+  .va-num { width: 17px; height: 17px; font-size: 10.5px; }
+  .article-body .va-caption { font-size: 15px; }
+}
