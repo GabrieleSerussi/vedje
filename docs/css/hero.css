@@ -1,0 +1,17 @@
+/* ============================================================
+   Hero simulator additions. Loaded after style.css.
+   ============================================================ */
+
+/* Author rules on .sim-tokens / .sim-legend set display, so [hidden] needs help. */
+.sim-card [hidden] { display: none !important; }
+
+/* The header of the SRI panel: inline-flex would swallow the spaces around the sigma symbol. */
+.sim-sri-head .eyebrow { display: inline-block; line-height: 1.35; }
+
+/* Mode buttons: a full label on wide screens, a short one on phones. */
+.seg .lbl-short { display: none; }
+@media (max-width: 560px) {
+  .sim-prompt { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .seg .lbl-long { display: none; }
+  .seg .lbl-short { display: inline; }
+}

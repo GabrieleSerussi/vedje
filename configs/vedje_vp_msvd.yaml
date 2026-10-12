@@ -1,0 +1,62 @@
+# VEDJE-VP on msvd. Replace ./data_root/... with your local paths.
+
+# Backbone (frozen) and frame-local cache: T frames x M queries = 64 tokens
+vision_encoder: "videoprism"
+vision_encoder_path: "MHRDYN7/videoprism-base-f16r288"
+vp_attn_implementation: "eager"
+num_frames: 16
+num_queries_per_frame: 4
+num_attention_heads: 8
+num_adapter_layers: 2
+
+# Joint reranker + residual stage-1 prior
+language_model_path: "microsoft/MiniLM-L12-H384-uncased"
+clip_injection: "post_only"
+vtm_temperature: 1.0
+vtc_logit_scale: 20.0
+
+# Losses: L = L_vtm + L_vtc + L_mlm + L_delta (equal weights)
+loss_weight_vtm: 1.0
+loss_weight_vtc: 1.0
+loss_weight_mlm: 1.0
+loss_weight_delta: 1.0
+delta_horizons: [3]
+delta_num_layers: 2
+delta_num_heads: 8
+
+# Optimization (AdamW, 400 warmup steps, per-epoch step decay 0.9, effective batch 64)
+init_lr: 0.0003
+warmup_lr: 1.0e-06
+min_lr: 1.0e-06
+lr_decay_rate: 0.9
+weight_decay: 0.02
+warmup_steps: 400
+max_epoch: 4
+batch_size: 16
+gradient_accumulation_steps: 4
+temp_checkpoint_steps: 200
+
+# Stage-1 candidates, hard negatives, and evaluation (K=20)
+num_hard_negatives: 49
+num_negatives_per_sample: 49
+hard_neg_pool_size: 50
+clip_model_path: "MHRDYN7/videoprism-lvt-base-f16r288"
+lvt_embeds_path: "./data_root/msvd/lvt_clip_embeds_train.pt"
+lvt_test_features_path: "./data_root/msvd/lvt_clip_embeds_test.pt"
+k: 20
+eval_batch_size: 16
+
+# Data
+use_precomputed_features: true
+precomputed_features_dir: "./data_root/msvd/videoprism_features_16f"
+hard_negatives_path: "./data_root/msvd/hard_negatives_text2vid_top50.json"
+test_set: "msvd"
+train_dataset: "msvd"
+msvd_videos: "./data_root/msvd/YouTubeClips/"
+msvd_train_ann: "./data_root/msvd/msvd_train.json"
+msvd_test_ann: "./data_root/msvd/msvd_test.json"
+msvd_precomputed_features_dir: "./data_root/msvd/videoprism_features_16f"
+
+experiment:
+  backend: "none"
+  run_name: "vedje_vp_msvd"
