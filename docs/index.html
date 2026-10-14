@@ -56,7 +56,7 @@
       <h1 class="article-title">VEDJE: Video-Efficient Discriminative Joint Encoder for Scalable Video-Text Retrieval</h1>
       <p class="article-dek">VEDJE moves video encoding offline and keeps joint matching online. A 33M-parameter joint encoder reranks the candidates from a small cache written once per video.</p>
       <ul class="value-points" aria-label="What the paper delivers">
-        <li><span class="vp-label">Result</span><span class="vp-text">On MSR-VTT, VEDJE improves R@1 over each matched first stage by 3.6 to 7.2 points, across both retrieval directions. With a fine-tuned VideoCLIP-XL first stage, it matches the LamRA reproduction in text-to-video R@1 with about 49 times fewer online parameters.</span></li>
+        <li><span class="vp-label">Result</span><span class="vp-text">On MSR-VTT, VEDJE improves R@1 over each matched first stage by 3.6 to 7.2 points, across both retrieval directions. With a fine-tuned VideoCLIP-XL first stage, it matches LamRA in text-to-video R@1 with about 49 times fewer online parameters.</span></li>
         <li><span class="vp-label">Why</span><span class="vp-text">Each cache is written before any query arrives, so it must hold evidence for every action and moment a query might describe. VEDJE does this by keeping a separate token group for each sampled frame.</span></li>
         <li><span class="vp-label">Storage</span><span class="vp-text">The default cache takes 48&nbsp;KiB per video, 128.5 times smaller than the frame-and-patch features. In the VideoPrism configuration on MSR-VTT, a fourfold smaller cache keeps text-to-video R@1 within 0.2 points of it.</span></li>
       </ul>
@@ -127,7 +127,7 @@
     <div class="stat-card reveal">
       <span class="eyebrow eyebrow-badge">Online parameters</span>
       <div class="stat-value">About 49×</div>
-      <div class="stat-caption">Fewer than the 7.6B decoder of the LamRA reproduction, at 59.8 against 59.7 MSR-VTT text-to-video R@1 (Appendix&nbsp;B).</div>
+      <div class="stat-caption">Fewer than the 7.6B decoder of LamRA, at 59.8 against 59.7 MSR-VTT text-to-video R@1 (Appendix&nbsp;B).</div>
     </div>
     <div class="stat-card reveal">
       <span class="eyebrow eyebrow-badge">First stages</span>
@@ -154,9 +154,9 @@
     <!-- 01 -->
     <div class="text-block reveal" id="results">
       <span class="eyebrow eyebrow-outline section-eyebrow">01 · Results</span>
-      <h2>On MSR-VTT, VEDJE matches the text-to-video R@1 of the LamRA reproduction with <span class="accent">about 49 times fewer online parameters</span>.</h2>
+      <h2>On MSR-VTT, VEDJE matches the text-to-video R@1 of LamRA with <span class="accent">about 49 times fewer online parameters</span>.</h2>
       <p class="section-ref">Sections 4.1 to 4.3 of the paper, with Figure 1, Tables 1, 3, 9, 12 and 22, and Appendices A.6, A.8 and B.</p>
-      <p>Online parameters count the text encoding and scoring that run for each query. With a fine-tuned <a class="ref" href="https://aclanthology.org/2024.emnlp-main.898/" target="_blank" rel="noopener" title="Wang et al., EMNLP 2024">VideoCLIP-XL</a> first stage, VEDJE raises text-to-video R@1 from 56.2 to 59.8 with about 157M online parameters. The <a class="ref" href="https://arxiv.org/abs/2412.01720" target="_blank" rel="noopener" title="Liu et al., CVPR 2025">LamRA</a> reproduction reaches 59.7 with a 7.6B-parameter decoder alone, about 49 times as many.</p>
+      <p>Online parameters count the text encoding and scoring that run for each query. With a fine-tuned <a class="ref" href="https://aclanthology.org/2024.emnlp-main.898/" target="_blank" rel="noopener" title="Wang et al., EMNLP 2024">VideoCLIP-XL</a> first stage, VEDJE raises text-to-video R@1 from 56.2 to 59.8 with about 157M online parameters. The <a class="ref" href="https://arxiv.org/abs/2412.01720" target="_blank" rel="noopener" title="Liu et al., CVPR 2025">LamRA</a> reaches 59.7 with a 7.6B-parameter decoder alone, about 49 times as many.</p>
       <div class="chart-card scatter" id="frontierCard">
         <div class="chart-head">
           <div class="chart-title">Accuracy against online parameters<small>Figure 1 and Table 22 · MSR-VTT text-to-video R@1 · log scale</small></div>
