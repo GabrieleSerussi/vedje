@@ -6,7 +6,7 @@
 
 <p>
 <a href="https://scholar.google.com/citations?user=yp4EiKQAAAAJ&amp;hl=en">Shahaf Wagner</a><sup>1*</sup>&nbsp;&nbsp;
-<a href="https://scholar.google.com/citations?user=GJ19YUEAAAAJ&amp;hl=en">Gabriele Serussi</a><sup>1*</sup>&nbsp;&nbsp;
+<a href="https://gabrieleserussi.github.io/">Gabriele Serussi</a><sup>1*</sup>&nbsp;&nbsp;
 <a href="https://scholar.google.com/citations?user=OmIy5cgAAAAJ">Dan Ben Ami</a><sup>1</sup>&nbsp;&nbsp;
 <a href="https://scholar.google.com/citations?user=ut_ISVIAAAAJ">Tomer Galanti</a><sup>2</sup>&nbsp;&nbsp;
 <a href="https://chaimbaskin.bgu.ac.il/">Chaim Baskin</a><sup>1</sup>
