@@ -21,6 +21,7 @@
 <p>
 <a href="https://arxiv.org/abs/2610.11850"><img src="https://img.shields.io/badge/arXiv-2610.11850-b31b1b" alt="arXiv 2610.11850"></a>
 <a href="https://gabrieleserussi.github.io/vedje/"><img src="https://img.shields.io/badge/Project-Page-1f6feb" alt="Project page"></a>
+<a href="https://paperswithcode.co/api/v1/papers/2610.11850/leaderboard-badge-link?eval=38593"><img src="https://paperswithcode.co/api/v1/papers/2610.11850/leaderboard-badge.svg?eval=38593&amp;live=1" alt="Papers with Code: SOTA on MSR-VTT (text-to-video)"></a>
 <a href="https://colab.research.google.com/github/GabrieleSerussi/vedje/blob/main/colab/vedje_tour.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
